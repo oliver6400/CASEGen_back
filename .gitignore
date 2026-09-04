@@ -1,0 +1,30 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Java
+backend/target/
+*.class
+*.jar
+
+# Node
+web/node_modules/
+web/dist/
+
+# Android
+mobile/.gradle/
+mobile/local.properties
+mobile/**/build/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

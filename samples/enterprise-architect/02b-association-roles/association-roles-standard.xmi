@@ -1,0 +1,46 @@
+<?xml  version='1.0' encoding='windows-1252' ?>
+<xmi:XMI xmlns:xmi="http://www.omg.org/spec/XMI/20131001" xmlns:uml="http://www.omg.org/spec/UML/20161101" xmlns:umldi="http://www.omg.org/spec/UML/20161101/UMLDI" xmlns:dc="http://www.omg.org/spec/UML/20161101/UMLDC">
+	<xmi:Documentation exporter="Enterprise Architect" exporterVersion="6.5" exporterID="1721"/>
+	<uml:Model xmi:type="uml:Model" name="EA_Model">
+		<packagedElement xmi:type="uml:Package" xmi:id="EAPK_F19C2D21_2F16_4de4_B648_C93B6A0CE82F" name="AssociationRolesModel">
+			<packagedElement xmi:type="uml:Class" xmi:id="EAID_701D0E4C_7C3A_4f55_B529_627E9239B70F" name="Customer">
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_8A9CB412_136D_41ba_B8BC_959AA87155D3" name="id" visibility="private">
+					<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#String"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000001_136D_41ba_B8BC_959AA87155D3" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000002_136D_41ba_B8BC_959AA87155D3" value="1"/>
+				</ownedAttribute>
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_064452A4_80C2_424c_8A7E_EA11C8429DA2" name="name" visibility="private">
+					<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#String"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000003_80C2_424c_8A7E_EA11C8429DA2" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000004_80C2_424c_8A7E_EA11C8429DA2" value="1"/>
+				</ownedAttribute>
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_dst5414E8_BC2A_4e6f_9B90_97836D49D820" name="sales" visibility="private" association="EAID_325414E8_BC2A_4e6f_9B90_97836D49D820">
+					<type xmi:idref="EAID_CA88F71D_9300_4995_9258_AB004B530768"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000005__BC2A_4e6f_9B90_97836D49D820" value="0"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000006__BC2A_4e6f_9B90_97836D49D820" value="*"/>
+				</ownedAttribute>
+			</packagedElement>
+			<packagedElement xmi:type="uml:Association" xmi:id="EAID_325414E8_BC2A_4e6f_9B90_97836D49D820">
+				<memberEnd xmi:idref="EAID_dst5414E8_BC2A_4e6f_9B90_97836D49D820"/>
+				<memberEnd xmi:idref="EAID_src5414E8_BC2A_4e6f_9B90_97836D49D820"/>
+			</packagedElement>
+			<packagedElement xmi:type="uml:Class" xmi:id="EAID_CA88F71D_9300_4995_9258_AB004B530768" name="Sale">
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_EA115FB8_C49F_494a_AE75_707E228BCE78" name="id" visibility="private">
+					<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#String"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000007_C49F_494a_AE75_707E228BCE78" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000008_C49F_494a_AE75_707E228BCE78" value="1"/>
+				</ownedAttribute>
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_06D65A33_FAB6_41c9_BED1_2038E6632008" name="total" visibility="private">
+					<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#Real"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000009_FAB6_41c9_BED1_2038E6632008" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000010_FAB6_41c9_BED1_2038E6632008" value="1"/>
+				</ownedAttribute>
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_src5414E8_BC2A_4e6f_9B90_97836D49D820" name="customer" visibility="private" association="EAID_325414E8_BC2A_4e6f_9B90_97836D49D820">
+					<type xmi:idref="EAID_701D0E4C_7C3A_4f55_B529_627E9239B70F"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000011__BC2A_4e6f_9B90_97836D49D820" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000012__BC2A_4e6f_9B90_97836D49D820" value="1"/>
+				</ownedAttribute>
+			</packagedElement>
+		</packagedElement>
+	</uml:Model>
+</xmi:XMI>

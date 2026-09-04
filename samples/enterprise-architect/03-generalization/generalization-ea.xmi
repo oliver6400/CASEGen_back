@@ -1,0 +1,161 @@
+<?xml  version='1.0' encoding='windows-1252' ?>
+<xmi:XMI xmlns:xmi="http://www.omg.org/spec/XMI/20131001" xmlns:uml="http://www.omg.org/spec/UML/20161101" xmlns:umldi="http://www.omg.org/spec/UML/20161101/UMLDI" xmlns:dc="http://www.omg.org/spec/UML/20161101/UMLDC">
+	<xmi:Documentation exporter="Enterprise Architect" exporterVersion="6.5" exporterID="1721"/>
+	<uml:Model xmi:type="uml:Model" name="EA_Model">
+		<packagedElement xmi:type="uml:Package" xmi:id="EAPK_4454ED12_0097_46fc_A61A_2E1567A7F2BD" name="GeneralizationModel">
+			<packagedElement xmi:type="uml:Class" xmi:id="EAID_DDCE5D4F_A548_4a35_8C94_AB2216D1F420" name="Customer">
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_D130BAA2_7C84_4983_9A70_B99A01FB3F88" name="email" visibility="private">
+					<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#String"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000001_7C84_4983_9A70_B99A01FB3F88" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000002_7C84_4983_9A70_B99A01FB3F88" value="1"/>
+				</ownedAttribute>
+				<generalization xmi:type="uml:Generalization" xmi:id="EAID_5EACB999_35C6_4be9_8C07_F58411F02049" general="EAID_B2DC6432_8330_4ce9_80A1_B1AFC27ECDD0" isSubstitutable="true"/>
+			</packagedElement>
+			<packagedElement xmi:type="uml:Class" xmi:id="EAID_B2DC6432_8330_4ce9_80A1_B1AFC27ECDD0" name="Person">
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_D9A85275_6D1C_480f_9BCB_5C3E60EC6C2D" name="id" visibility="private">
+					<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#String"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000003_6D1C_480f_9BCB_5C3E60EC6C2D" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000004_6D1C_480f_9BCB_5C3E60EC6C2D" value="1"/>
+				</ownedAttribute>
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_8EC5F3C6_7B1E_4cb5_B92F_AD2767D52797" name="name" visibility="private">
+					<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#String"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000005_7B1E_4cb5_B92F_AD2767D52797" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000006_7B1E_4cb5_B92F_AD2767D52797" value="1"/>
+				</ownedAttribute>
+			</packagedElement>
+		</packagedElement>
+	</uml:Model>
+	<xmi:Extension extender="Enterprise Architect" extenderID="6.5">
+		<elements>
+			<element xmi:idref="EAPK_4454ED12_0097_46fc_A61A_2E1567A7F2BD" xmi:type="uml:Package" name="GeneralizationModel" scope="public">
+				<model package2="EAID_4454ED12_0097_46fc_A61A_2E1567A7F2BD" package="EAPK_69B0F4A7_950E_49ba_8BA0_12ECEFEF8A84" tpos="0" ea_localid="2" ea_eleType="package"/>
+				<properties isSpecification="false" sType="Package" nType="0" scope="public"/>
+				<project author="Administrador" version="1.0" phase="1.0" created="2026-09-04 07:51:52" modified="2026-09-04 07:51:52" complexity="1" status="Proposed"/>
+				<code gentype="&lt;none&gt;"/>
+				<style appearance="BackColor=-1;BorderColor=-1;BorderWidth=-1;FontColor=-1;VSwimLanes=1;HSwimLanes=1;BorderStyle=0;"/>
+				<tags/>
+				<xrefs/>
+				<extendedProperties tagged="0" package_name="Model"/>
+				<packageproperties version="1.0"/>
+				<paths/>
+				<times created="2026-09-04 07:51:52" modified="2026-09-04 07:51:52"/>
+				<flags iscontrolled="0" isprotected="0" usedtd="0" logxml="0" packageFlags="isModel=1;VICON=3;"/>
+			</element>
+			<element xmi:idref="EAID_DDCE5D4F_A548_4a35_8C94_AB2216D1F420" xmi:type="uml:Class" name="Customer" scope="public">
+				<model package="EAPK_4454ED12_0097_46fc_A61A_2E1567A7F2BD" tpos="0" ea_localid="3" ea_eleType="element"/>
+				<properties isSpecification="false" sType="Class" nType="0" scope="public" isRoot="false" isLeaf="false" isAbstract="false" isActive="false"/>
+				<project author="Administrador" version="1.0" phase="1.0" created="2026-09-04 07:56:40" modified="2026-09-04 07:56:54" complexity="1" status="Proposed"/>
+				<code gentype="&lt;none&gt;"/>
+				<style appearance="BackColor=-1;BorderColor=-1;BorderWidth=-1;FontColor=-1;VSwimLanes=1;HSwimLanes=1;BorderStyle=0;"/>
+				<tags/>
+				<xrefs/>
+				<extendedProperties tagged="0" package_name="GeneralizationModel"/>
+				<attributes>
+					<attribute xmi:idref="EAID_D130BAA2_7C84_4983_9A70_B99A01FB3F88" name="email" scope="Private">
+						<initial/>
+						<documentation/>
+						<model ea_localid="3" ea_guid="{D130BAA2-7C84-4983-9A70-B99A01FB3F88}"/>
+						<properties type="String" collection="false" static="0" duplicates="0" changeability="changeable"/>
+						<coords ordered="0"/>
+						<containment containment="Not Specified" position="0"/>
+						<stereotype/>
+						<bounds lower="1" upper="1"/>
+						<options/>
+						<style/>
+						<styleex value="volatile=0;"/>
+						<tags/>
+						<xrefs/>
+					</attribute>
+				</attributes>
+				<links>
+					<Generalization xmi:id="EAID_5EACB999_35C6_4be9_8C07_F58411F02049" start="EAID_DDCE5D4F_A548_4a35_8C94_AB2216D1F420" end="EAID_B2DC6432_8330_4ce9_80A1_B1AFC27ECDD0"/>
+				</links>
+			</element>
+			<element xmi:idref="EAID_B2DC6432_8330_4ce9_80A1_B1AFC27ECDD0" xmi:type="uml:Class" name="Person" scope="public">
+				<model package="EAPK_4454ED12_0097_46fc_A61A_2E1567A7F2BD" tpos="0" ea_localid="2" ea_eleType="element"/>
+				<properties isSpecification="false" sType="Class" nType="0" scope="public" isRoot="false" isLeaf="false" isAbstract="false" isActive="false"/>
+				<project author="Administrador" version="1.0" phase="1.0" created="2026-09-04 07:54:53" modified="2026-09-04 07:55:06" complexity="1" status="Proposed"/>
+				<code gentype="&lt;none&gt;"/>
+				<style appearance="BackColor=-1;BorderColor=-1;BorderWidth=-1;FontColor=-1;VSwimLanes=1;HSwimLanes=1;BorderStyle=0;"/>
+				<tags/>
+				<xrefs/>
+				<extendedProperties tagged="0" package_name="GeneralizationModel"/>
+				<attributes>
+					<attribute xmi:idref="EAID_D9A85275_6D1C_480f_9BCB_5C3E60EC6C2D" name="id" scope="Private">
+						<initial/>
+						<documentation/>
+						<model ea_localid="1" ea_guid="{D9A85275-6D1C-480f-9BCB-5C3E60EC6C2D}"/>
+						<properties type="String" collection="false" static="0" duplicates="0" changeability="changeable"/>
+						<coords ordered="0"/>
+						<containment containment="Not Specified" position="0"/>
+						<stereotype/>
+						<bounds lower="1" upper="1"/>
+						<options/>
+						<style/>
+						<styleex value="volatile=0;"/>
+						<tags/>
+						<xrefs/>
+					</attribute>
+					<attribute xmi:idref="EAID_8EC5F3C6_7B1E_4cb5_B92F_AD2767D52797" name="name" scope="Private">
+						<initial/>
+						<documentation/>
+						<model ea_localid="2" ea_guid="{8EC5F3C6-7B1E-4cb5-B92F-AD2767D52797}"/>
+						<properties type="String" collection="false" static="0" duplicates="0" changeability="changeable"/>
+						<coords ordered="0"/>
+						<containment containment="Not Specified" position="1"/>
+						<stereotype/>
+						<bounds lower="1" upper="1"/>
+						<options/>
+						<style/>
+						<styleex value="volatile=0;"/>
+						<tags/>
+						<xrefs/>
+					</attribute>
+				</attributes>
+				<links>
+					<Generalization xmi:id="EAID_5EACB999_35C6_4be9_8C07_F58411F02049" start="EAID_DDCE5D4F_A548_4a35_8C94_AB2216D1F420" end="EAID_B2DC6432_8330_4ce9_80A1_B1AFC27ECDD0"/>
+				</links>
+			</element>
+		</elements>
+		<connectors>
+			<connector xmi:idref="EAID_5EACB999_35C6_4be9_8C07_F58411F02049">
+				<source xmi:idref="EAID_DDCE5D4F_A548_4a35_8C94_AB2216D1F420">
+					<model ea_localid="3" type="Class" name="Customer"/>
+					<role visibility="Public" targetScope="instance"/>
+					<type aggregation="none" containment="Unspecified"/>
+					<constraints/>
+					<modifiers isOrdered="false" changeable="none" isNavigable="false"/>
+					<style value="Union=0;Derived=0;AllowDuplicates=0;"/>
+					<documentation/>
+					<xrefs/>
+					<tags/>
+				</source>
+				<target xmi:idref="EAID_B2DC6432_8330_4ce9_80A1_B1AFC27ECDD0">
+					<model ea_localid="2" type="Class" name="Person"/>
+					<role visibility="Public" targetScope="instance"/>
+					<type aggregation="none" containment="Unspecified"/>
+					<constraints/>
+					<modifiers isOrdered="false" changeable="none" isNavigable="true"/>
+					<style value="Union=0;Derived=0;AllowDuplicates=0;"/>
+					<documentation/>
+					<xrefs/>
+					<tags/>
+				</target>
+				<model ea_localid="1"/>
+				<properties ea_type="Generalization" direction="Source -&gt; Destination"/>
+				<parameterSubstitutions/>
+				<documentation/>
+				<appearance linemode="3" linecolor="-1" linewidth="0" seqno="0" headStyle="0" lineStyle="0"/>
+				<labels/>
+				<extendedProperties virtualInheritance="0"/>
+				<style/>
+				<xrefs/>
+				<tags/>
+			</connector>
+		</connectors>
+		<primitivetypes>
+			<packagedElement xmi:type="uml:Package" xmi:id="EAPrimitiveTypesPackage" name="EA_PrimitiveTypes_Package"/>
+		</primitivetypes>
+		<profiles/>
+	</xmi:Extension>
+</xmi:XMI>

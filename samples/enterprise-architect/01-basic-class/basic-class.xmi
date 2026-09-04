@@ -1,0 +1,105 @@
+<?xml  version='1.0' encoding='windows-1252' ?>
+<xmi:XMI xmlns:xmi="http://www.omg.org/spec/XMI/20131001" xmlns:uml="http://www.omg.org/spec/UML/20161101" xmlns:umldi="http://www.omg.org/spec/UML/20161101/UMLDI" xmlns:dc="http://www.omg.org/spec/UML/20161101/UMLDC">
+	<xmi:Documentation exporter="Enterprise Architect" exporterVersion="6.5" exporterID="1721"/>
+	<uml:Model xmi:type="uml:Model" name="EA_Model">
+		<packagedElement xmi:type="uml:Package" xmi:id="EAPK_8E178626_38A9_411e_BC3E_71362A8218B2" name="BasicClassModel">
+			<packagedElement xmi:type="uml:Class" xmi:id="EAID_A3A99D5A_EE16_4538_9D88_4F2679FE3D92" name="Customer">
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_E83085BF_0450_4a2a_B0BE_9E0E3B6A794B" name="email" visibility="private">
+					<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#String"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000001_0450_4a2a_B0BE_9E0E3B6A794B" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000002_0450_4a2a_B0BE_9E0E3B6A794B" value="1"/>
+				</ownedAttribute>
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_7002595A_6D91_4391_BFB1_5FE1D5AF9041" name="id" visibility="private">
+					<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#String"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000003_6D91_4391_BFB1_5FE1D5AF9041" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000004_6D91_4391_BFB1_5FE1D5AF9041" value="1"/>
+				</ownedAttribute>
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_83742D12_8663_494d_8EBE_172456B1E414" name="name" visibility="private">
+					<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#String"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000005_8663_494d_8EBE_172456B1E414" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000006_8663_494d_8EBE_172456B1E414" value="1"/>
+				</ownedAttribute>
+			</packagedElement>
+		</packagedElement>
+	</uml:Model>
+	<xmi:Extension extender="Enterprise Architect" extenderID="6.5">
+		<elements>
+			<element xmi:idref="EAPK_8E178626_38A9_411e_BC3E_71362A8218B2" xmi:type="uml:Package" name="BasicClassModel" scope="public">
+				<model package2="EAID_8E178626_38A9_411e_BC3E_71362A8218B2" package="EAPK_68B40808_F36D_475b_B87B_31572B4C03D3" tpos="0" ea_localid="3" ea_eleType="package"/>
+				<properties isSpecification="false" sType="Package" nType="0" scope="public"/>
+				<project author="Administrador" version="1.0" phase="1.0" created="2026-09-02 11:17:30" modified="2026-09-02 11:17:30" complexity="1" status="Proposed"/>
+				<code gentype="&lt;none&gt;"/>
+				<style appearance="BackColor=-1;BorderColor=-1;BorderWidth=-1;FontColor=-1;VSwimLanes=1;HSwimLanes=1;BorderStyle=0;"/>
+				<tags/>
+				<xrefs/>
+				<extendedProperties tagged="0" package_name="Model"/>
+				<packageproperties version="1.0"/>
+				<paths/>
+				<times created="2026-09-02 11:17:30" modified="2026-09-02 11:17:30"/>
+				<flags iscontrolled="0" isprotected="0" usedtd="0" logxml="0" packageFlags="isModel=1;VICON=3;"/>
+			</element>
+			<element xmi:idref="EAID_A3A99D5A_EE16_4538_9D88_4F2679FE3D92" xmi:type="uml:Class" name="Customer" scope="public">
+				<model package="EAPK_8E178626_38A9_411e_BC3E_71362A8218B2" tpos="0" ea_localid="2" ea_eleType="element"/>
+				<properties isSpecification="false" sType="Class" nType="0" scope="public" isRoot="false" isLeaf="false" isAbstract="false" isActive="false"/>
+				<project author="Administrador" version="1.0" phase="1.0" created="2026-09-02 18:35:07" modified="2026-09-02 18:39:41" complexity="1" status="Proposed"/>
+				<code product_name="&lt;none&gt;" gentype="&lt;none&gt;"/>
+				<style appearance="BackColor=-1;BorderColor=-1;BorderWidth=-1;FontColor=-1;VSwimLanes=1;HSwimLanes=1;BorderStyle=0;"/>
+				<tags/>
+				<xrefs/>
+				<extendedProperties tagged="0" package_name="BasicClassModel"/>
+				<attributes>
+					<attribute xmi:idref="EAID_E83085BF_0450_4a2a_B0BE_9E0E3B6A794B" name="email" scope="Private">
+						<initial/>
+						<documentation/>
+						<model ea_localid="3" ea_guid="{E83085BF-0450-4a2a-B0BE-9E0E3B6A794B}"/>
+						<properties type="String" collection="false" static="0" duplicates="0" changeability="changeable"/>
+						<coords ordered="0"/>
+						<containment containment="Not Specified" position="2"/>
+						<stereotype/>
+						<bounds lower="1" upper="1"/>
+						<options/>
+						<style/>
+						<styleex value="volatile=0;"/>
+						<tags/>
+						<xrefs/>
+					</attribute>
+					<attribute xmi:idref="EAID_7002595A_6D91_4391_BFB1_5FE1D5AF9041" name="id" scope="Private">
+						<initial/>
+						<documentation/>
+						<model ea_localid="1" ea_guid="{7002595A-6D91-4391-BFB1-5FE1D5AF9041}"/>
+						<properties type="String" collection="false" static="0" duplicates="0" changeability="changeable"/>
+						<coords ordered="0"/>
+						<containment containment="Not Specified" position="0"/>
+						<stereotype/>
+						<bounds lower="1" upper="1"/>
+						<options/>
+						<style/>
+						<styleex value="volatile=0;"/>
+						<tags/>
+						<xrefs/>
+					</attribute>
+					<attribute xmi:idref="EAID_83742D12_8663_494d_8EBE_172456B1E414" name="name" scope="Private">
+						<initial/>
+						<documentation/>
+						<model ea_localid="2" ea_guid="{83742D12-8663-494d-8EBE-172456B1E414}"/>
+						<properties type="String" collection="false" static="0" duplicates="0" changeability="changeable"/>
+						<coords ordered="0"/>
+						<containment containment="Not Specified" position="1"/>
+						<stereotype/>
+						<bounds lower="1" upper="1"/>
+						<options/>
+						<style/>
+						<styleex value="volatile=0;"/>
+						<tags/>
+						<xrefs/>
+					</attribute>
+				</attributes>
+			</element>
+		</elements>
+		<connectors/>
+		<primitivetypes>
+			<packagedElement xmi:type="uml:Package" xmi:id="EAPrimitiveTypesPackage" name="EA_PrimitiveTypes_Package"/>
+		</primitivetypes>
+		<profiles/>
+	</xmi:Extension>
+</xmi:XMI>

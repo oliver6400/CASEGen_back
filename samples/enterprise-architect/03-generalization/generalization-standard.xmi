@@ -1,0 +1,28 @@
+<?xml  version='1.0' encoding='windows-1252' ?>
+<xmi:XMI xmlns:xmi="http://www.omg.org/spec/XMI/20131001" xmlns:uml="http://www.omg.org/spec/UML/20161101" xmlns:umldi="http://www.omg.org/spec/UML/20161101/UMLDI" xmlns:dc="http://www.omg.org/spec/UML/20161101/UMLDC">
+	<xmi:Documentation exporter="Enterprise Architect" exporterVersion="6.5" exporterID="1721"/>
+	<uml:Model xmi:type="uml:Model" name="EA_Model">
+		<packagedElement xmi:type="uml:Package" xmi:id="EAPK_4454ED12_0097_46fc_A61A_2E1567A7F2BD" name="GeneralizationModel">
+			<packagedElement xmi:type="uml:Class" xmi:id="EAID_DDCE5D4F_A548_4a35_8C94_AB2216D1F420" name="Customer">
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_D130BAA2_7C84_4983_9A70_B99A01FB3F88" name="email" visibility="private">
+					<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#String"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000001_7C84_4983_9A70_B99A01FB3F88" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000002_7C84_4983_9A70_B99A01FB3F88" value="1"/>
+				</ownedAttribute>
+				<generalization xmi:type="uml:Generalization" xmi:id="EAID_5EACB999_35C6_4be9_8C07_F58411F02049" general="EAID_B2DC6432_8330_4ce9_80A1_B1AFC27ECDD0" isSubstitutable="true"/>
+			</packagedElement>
+			<packagedElement xmi:type="uml:Class" xmi:id="EAID_B2DC6432_8330_4ce9_80A1_B1AFC27ECDD0" name="Person">
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_D9A85275_6D1C_480f_9BCB_5C3E60EC6C2D" name="id" visibility="private">
+					<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#String"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000003_6D1C_480f_9BCB_5C3E60EC6C2D" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000004_6D1C_480f_9BCB_5C3E60EC6C2D" value="1"/>
+				</ownedAttribute>
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_8EC5F3C6_7B1E_4cb5_B92F_AD2767D52797" name="name" visibility="private">
+					<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#String"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000005_7B1E_4cb5_B92F_AD2767D52797" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000006_7B1E_4cb5_B92F_AD2767D52797" value="1"/>
+				</ownedAttribute>
+			</packagedElement>
+		</packagedElement>
+	</uml:Model>
+</xmi:XMI>
