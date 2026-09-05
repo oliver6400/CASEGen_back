@@ -1,0 +1,11 @@
+<?xml  version='1.0' encoding='windows-1252' ?>
+<xmi:XMI xmlns:xmi="http://www.omg.org/spec/XMI/20131001" xmlns:uml="http://www.omg.org/spec/UML/20161101" xmlns:umldi="http://www.omg.org/spec/UML/20161101/UMLDI" xmlns:dc="http://www.omg.org/spec/UML/20161101/UMLDC">
+	<xmi:Documentation exporter="Enterprise Architect" exporterVersion="6.5" exporterID="1721"/>
+	<uml:Model xmi:type="uml:Model" name="EA_Model">
+		<packagedElement xmi:type="uml:Package" xmi:id="EAPK_BFD0D587_96A0_4df0_B613_051EF3159A2F" name="InterfaceModel">
+			<packagedElement xmi:type="uml:Class" xmi:id="EAID_94908AA7_34C4_4b9f_8D6C_8FCBC04170C9" name="PaymentService"/>
+			<packagedElement xmi:type="uml:Realization" xmi:id="EAID_B6F4F39A_AE1F_4ee5_B3AB_0AF7D912A9EE" supplier="EAID_044F70D4_DF51_4e1e_8F5B_5D8926390662" client="EAID_94908AA7_34C4_4b9f_8D6C_8FCBC04170C9"/>
+			<packagedElement xmi:type="uml:Interface" xmi:id="EAID_044F70D4_DF51_4e1e_8F5B_5D8926390662" name="Payable" isAbstract="true"/>
+		</packagedElement>
+	</uml:Model>
+</xmi:XMI>

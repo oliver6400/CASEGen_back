@@ -1,0 +1,23 @@
+<?xml  version='1.0' encoding='windows-1252' ?>
+<xmi:XMI xmlns:xmi="http://www.omg.org/spec/XMI/20131001" xmlns:uml="http://www.omg.org/spec/UML/20161101" xmlns:umldi="http://www.omg.org/spec/UML/20161101/UMLDI" xmlns:dc="http://www.omg.org/spec/UML/20161101/UMLDC">
+	<xmi:Documentation exporter="Enterprise Architect" exporterVersion="6.5" exporterID="1721"/>
+	<uml:Model xmi:type="uml:Model" name="EA_Model">
+		<packagedElement xmi:type="uml:Package" xmi:id="EAPK_2ADA691A_BEE8_4030_9332_CB3A7A4B7432" name="OperationModel">
+			<packagedElement xmi:type="uml:Class" xmi:id="EAID_EE871EAF_A4C5_4f23_9784_0E5BDC875A8B" name="Customer">
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_5FF28844_1CD9_4cc0_94FC_F2DC6441409B" name="id" visibility="private">
+					<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#String"/>
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000001_1CD9_4cc0_94FC_F2DC6441409B" value="1"/>
+					<upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="EAID_LI000002_1CD9_4cc0_94FC_F2DC6441409B" value="1"/>
+				</ownedAttribute>
+				<ownedOperation xmi:id="EAID_301A2067_E1A9_4241_B8CA_89C0FA833C35" name="register">
+					<ownedParameter xmi:id="EAID_8A51C2D3_CBC4_4787_A5E4_9BEA49750D94" name="email">
+						<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#String"/>
+					</ownedParameter>
+					<ownedParameter xmi:id="EAID_RT000000_E1A9_4241_B8CA_89C0FA833C35" name="return" direction="return">
+						<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#Boolean"/>
+					</ownedParameter>
+				</ownedOperation>
+			</packagedElement>
+		</packagedElement>
+	</uml:Model>
+</xmi:XMI>

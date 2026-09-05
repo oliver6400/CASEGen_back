@@ -1,0 +1,95 @@
+<?xml  version='1.0' encoding='windows-1252' ?>
+<xmi:XMI xmlns:xmi="http://www.omg.org/spec/XMI/20131001" xmlns:uml="http://www.omg.org/spec/UML/20161101" xmlns:umldi="http://www.omg.org/spec/UML/20161101/UMLDI" xmlns:dc="http://www.omg.org/spec/UML/20161101/UMLDC">
+	<xmi:Documentation exporter="Enterprise Architect" exporterVersion="6.5" exporterID="1721"/>
+	<uml:Model xmi:type="uml:Model" name="EA_Model">
+		<packagedElement xmi:type="uml:Package" xmi:id="EAPK_BFD0D587_96A0_4df0_B613_051EF3159A2F" name="InterfaceModel">
+			<packagedElement xmi:type="uml:Class" xmi:id="EAID_94908AA7_34C4_4b9f_8D6C_8FCBC04170C9" name="PaymentService"/>
+			<packagedElement xmi:type="uml:Realization" xmi:id="EAID_B6F4F39A_AE1F_4ee5_B3AB_0AF7D912A9EE" supplier="EAID_044F70D4_DF51_4e1e_8F5B_5D8926390662" client="EAID_94908AA7_34C4_4b9f_8D6C_8FCBC04170C9"/>
+			<packagedElement xmi:type="uml:Interface" xmi:id="EAID_044F70D4_DF51_4e1e_8F5B_5D8926390662" name="Payable" isAbstract="true"/>
+		</packagedElement>
+	</uml:Model>
+	<xmi:Extension extender="Enterprise Architect" extenderID="6.5">
+		<elements>
+			<element xmi:idref="EAPK_BFD0D587_96A0_4df0_B613_051EF3159A2F" xmi:type="uml:Package" name="InterfaceModel" scope="public">
+				<model package2="EAID_BFD0D587_96A0_4df0_B613_051EF3159A2F" package="EAPK_49B8B0E5_02AB_404f_BB27_C96648354629" tpos="0" ea_localid="2" ea_eleType="package"/>
+				<properties isSpecification="false" sType="Package" nType="0" scope="public"/>
+				<project author="Administrador" version="1.0" phase="1.0" created="2026-09-04 11:14:08" modified="2026-09-04 11:14:08" complexity="1" status="Proposed"/>
+				<code gentype="&lt;none&gt;"/>
+				<style appearance="BackColor=-1;BorderColor=-1;BorderWidth=-1;FontColor=-1;VSwimLanes=1;HSwimLanes=1;BorderStyle=0;"/>
+				<tags/>
+				<xrefs/>
+				<extendedProperties tagged="0" package_name="Model"/>
+				<packageproperties version="1.0"/>
+				<paths/>
+				<times created="2026-09-04 11:14:07" modified="2026-09-04 11:14:07"/>
+				<flags iscontrolled="0" isprotected="0" usedtd="0" logxml="0" packageFlags="isModel=1;VICON=3;"/>
+			</element>
+			<element xmi:idref="EAID_94908AA7_34C4_4b9f_8D6C_8FCBC04170C9" xmi:type="uml:Class" name="PaymentService" scope="public">
+				<model package="EAPK_BFD0D587_96A0_4df0_B613_051EF3159A2F" tpos="0" ea_localid="3" ea_eleType="element"/>
+				<properties isSpecification="false" sType="Class" nType="0" scope="public" isRoot="false" isLeaf="false" isAbstract="false" isActive="false"/>
+				<project author="Administrador" version="1.0" phase="1.0" created="2026-09-04 11:19:15" modified="2026-09-04 11:19:30" complexity="1" status="Proposed"/>
+				<code gentype="&lt;none&gt;"/>
+				<style appearance="BackColor=-1;BorderColor=-1;BorderWidth=-1;FontColor=-1;VSwimLanes=1;HSwimLanes=1;BorderStyle=0;"/>
+				<tags/>
+				<xrefs/>
+				<extendedProperties tagged="0" package_name="InterfaceModel"/>
+				<links>
+					<Realisation xmi:id="EAID_B6F4F39A_AE1F_4ee5_B3AB_0AF7D912A9EE" start="EAID_94908AA7_34C4_4b9f_8D6C_8FCBC04170C9" end="EAID_044F70D4_DF51_4e1e_8F5B_5D8926390662"/>
+				</links>
+			</element>
+			<element xmi:idref="EAID_044F70D4_DF51_4e1e_8F5B_5D8926390662" xmi:type="uml:Interface" name="Payable" scope="public">
+				<model package="EAPK_BFD0D587_96A0_4df0_B613_051EF3159A2F" tpos="0" ea_localid="2" ea_eleType="element"/>
+				<properties isSpecification="false" sType="Interface" nType="0" scope="public" isRoot="false" isLeaf="false" isAbstract="true"/>
+				<project author="Administrador" version="1.0" phase="1.0" created="2026-09-04 11:18:24" modified="2026-09-04 11:18:39" complexity="1" status="Proposed"/>
+				<code gentype="&lt;none&gt;"/>
+				<style appearance="BackColor=-1;BorderColor=-1;BorderWidth=-1;FontColor=-1;VSwimLanes=1;HSwimLanes=1;BorderStyle=0;"/>
+				<tags/>
+				<xrefs/>
+				<extendedProperties tagged="0" package_name="InterfaceModel"/>
+				<links>
+					<Realisation xmi:id="EAID_B6F4F39A_AE1F_4ee5_B3AB_0AF7D912A9EE" start="EAID_94908AA7_34C4_4b9f_8D6C_8FCBC04170C9" end="EAID_044F70D4_DF51_4e1e_8F5B_5D8926390662"/>
+				</links>
+			</element>
+		</elements>
+		<connectors>
+			<connector xmi:idref="EAID_B6F4F39A_AE1F_4ee5_B3AB_0AF7D912A9EE">
+				<source xmi:idref="EAID_94908AA7_34C4_4b9f_8D6C_8FCBC04170C9">
+					<model ea_localid="3" type="Class" name="PaymentService"/>
+					<role visibility="Public" targetScope="instance"/>
+					<type aggregation="none" containment="Unspecified"/>
+					<constraints/>
+					<modifiers isOrdered="false" changeable="none" isNavigable="false"/>
+					<style value="Union=0;Derived=0;AllowDuplicates=0;Owned=0;Navigable=Non-Navigable;"/>
+					<documentation/>
+					<xrefs/>
+					<tags/>
+				</source>
+				<target xmi:idref="EAID_044F70D4_DF51_4e1e_8F5B_5D8926390662">
+					<model ea_localid="2" type="Interface" name="Payable"/>
+					<role visibility="Public" targetScope="instance"/>
+					<type aggregation="none" containment="Unspecified"/>
+					<constraints/>
+					<modifiers isOrdered="false" changeable="none" isNavigable="true"/>
+					<style value="Union=0;Derived=0;AllowDuplicates=0;Owned=0;Navigable=Navigable;"/>
+					<documentation/>
+					<xrefs/>
+					<tags/>
+				</target>
+				<model ea_localid="1"/>
+				<properties ea_type="Realisation" direction="Source -&gt; Destination"/>
+				<parameterSubstitutions/>
+				<documentation/>
+				<appearance linemode="3" linecolor="-1" linewidth="0" seqno="0" headStyle="0" lineStyle="0"/>
+				<labels/>
+				<extendedProperties virtualInheritance="0"/>
+				<style/>
+				<xrefs/>
+				<tags/>
+			</connector>
+		</connectors>
+		<primitivetypes>
+			<packagedElement xmi:type="uml:Package" xmi:id="EAPrimitiveTypesPackage" name="EA_PrimitiveTypes_Package"/>
+		</primitivetypes>
+		<profiles/>
+	</xmi:Extension>
+</xmi:XMI>
