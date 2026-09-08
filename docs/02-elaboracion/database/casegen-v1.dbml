@@ -1,0 +1,273 @@
+//////////////////////////////////////////////////////////
+// CASEGen Database Model
+// Version: 1.0
+//
+// IMPORTANT:
+// - projects already exists in Flyway V1.
+// - Do not recreate projects from this DBML.
+// - Flyway SQL is the executable source of truth.
+// - UUID is used for persistent identifiers.
+//////////////////////////////////////////////////////////
+
+
+//////////////////////////////////////////////////////////
+// EXISTING DOMAIN - V1
+//////////////////////////////////////////////////////////
+
+Table projects {
+  id uuid [pk]
+
+  Note: '''
+  Existing table created by V1__create_projects_table.sql.
+
+  This declaration exists only to allow relationships
+  to other tables in this DBML.
+
+  Codex MUST inspect the actual V1 migration before
+  generating V2 and MUST NOT recreate or modify this
+  table unless explicitly requested.
+  '''
+}
+
+
+//////////////////////////////////////////////////////////
+// USERS
+//////////////////////////////////////////////////////////
+
+Table users {
+  id uuid [pk]
+
+  email varchar(254) [not null]
+  password_hash varchar(255) [not null]
+  display_name varchar(120) [not null]
+
+  system_role varchar(20) [not null, default: 'USER']
+
+  enabled boolean [not null, default: true]
+
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+
+  indexes {
+    email [unique, name: 'uq_users_email']
+  }
+
+  Note: '''
+  system_role allowed values:
+  - USER
+  - ADMIN
+  '''
+}
+
+
+//////////////////////////////////////////////////////////
+// PROJECT MEMBERS
+//////////////////////////////////////////////////////////
+
+Table project_members {
+  id uuid [pk]
+
+  project_id uuid [not null]
+  user_id uuid [not null]
+
+  role varchar(20) [not null]
+  status varchar(20) [not null, default: 'ACTIVE']
+
+  joined_at timestamptz
+  created_at timestamptz [not null]
+
+  indexes {
+    (project_id, user_id) [unique, name: 'uq_project_members_project_user']
+    project_id [name: 'idx_project_members_project']
+    user_id [name: 'idx_project_members_user']
+  }
+
+  Note: '''
+  role:
+  - HOST
+  - COLLABORATOR
+  - VIEWER
+
+  status:
+  - INVITED
+  - ACTIVE
+  - REVOKED
+  '''
+}
+
+
+//////////////////////////////////////////////////////////
+// PROJECT INVITATIONS
+//////////////////////////////////////////////////////////
+
+Table project_invitations {
+  id uuid [pk]
+
+  project_id uuid [not null]
+  invited_by uuid [not null]
+
+  email varchar(254) [not null]
+
+  role varchar(20) [not null]
+
+  token_hash varchar(255) [not null]
+
+  status varchar(20) [not null, default: 'PENDING']
+
+  expires_at timestamptz [not null]
+
+  created_at timestamptz [not null]
+  accepted_at timestamptz
+
+  indexes {
+    project_id [name: 'idx_project_invitations_project']
+    email [name: 'idx_project_invitations_email']
+    token_hash [unique, name: 'uq_project_invitations_token']
+  }
+
+  Note: '''
+  role:
+  - COLLABORATOR
+  - VIEWER
+
+  An invitation should not assign HOST directly.
+
+  status:
+  - PENDING
+  - ACCEPTED
+  - EXPIRED
+  - REVOKED
+  '''
+}
+
+
+//////////////////////////////////////////////////////////
+// REFERENCES
+//////////////////////////////////////////////////////////
+
+Ref: project_members.project_id > projects.id
+
+Ref: project_members.user_id > users.id
+
+Ref: project_invitations.project_id > projects.id
+
+Ref: project_invitations.invited_by > users.id
+
+//////////////////////////////////////////////////////////
+// V3 - UML MODEL CORE
+//////////////////////////////////////////////////////////
+
+Table uml_models {
+  id uuid [pk]
+
+  project_id uuid [not null]
+
+  name varchar(180) [not null]
+  documentation text
+
+  uml_version varchar(20) [not null, default: '2.5.1']
+
+  revision bigint [not null, default: 0]
+
+  status varchar(20) [not null, default: 'EDITABLE']
+
+  created_by uuid
+
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+
+  indexes {
+    project_id [name: 'idx_uml_models_project']
+    (project_id, name) [unique, name: 'uq_uml_models_project_name']
+  }
+
+  Note: '''
+  status:
+  - EDITABLE
+  - ARCHIVED
+
+  revision must be >= 0.
+  '''
+}
+
+
+Table uml_elements {
+  id uuid [pk]
+
+  model_id uuid [not null]
+
+  element_type varchar(40) [not null]
+
+  name varchar(180]
+
+  documentation text
+
+  external_xmi_id varchar(255)
+
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+
+  indexes {
+    model_id [name: 'idx_uml_elements_model']
+    (model_id, element_type) [name: 'idx_uml_elements_model_type']
+  }
+
+  Note: '''
+  Base identity for all semantic UML elements.
+
+  external_xmi_id is an external interoperability
+  identifier and MUST NEVER be used as CASEGen PK.
+
+  V3 element types:
+  - PACKAGE
+  - CLASSIFIER
+
+  Additional element types are introduced through
+  future Flyway migrations.
+  '''
+}
+
+
+Table uml_packages {
+  element_id uuid [pk]
+
+  parent_package_id uuid
+}
+
+
+Table uml_classifiers {
+  element_id uuid [pk]
+
+  package_id uuid
+
+  kind varchar(20) [not null]
+
+  visibility varchar(20) [not null, default: 'PUBLIC']
+
+  is_abstract boolean [not null, default: false]
+  is_active boolean [not null, default: false]
+
+  Note: '''
+  kind:
+  - CLASS
+  - INTERFACE
+
+  visibility:
+  - PUBLIC
+  - PRIVATE
+  - PROTECTED
+  - PACKAGE
+  '''
+}
+
+
+Ref: uml_models.project_id > projects.id
+Ref: uml_models.created_by > users.id
+
+Ref: uml_elements.model_id > uml_models.id
+
+Ref: uml_packages.element_id - uml_elements.id
+Ref: uml_packages.parent_package_id > uml_packages.element_id
+
+Ref: uml_classifiers.element_id - uml_elements.id
+Ref: uml_classifiers.package_id > uml_packages.element_id

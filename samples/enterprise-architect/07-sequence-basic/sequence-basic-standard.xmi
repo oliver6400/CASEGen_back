@@ -1,0 +1,51 @@
+<?xml  version='1.0' encoding='windows-1252' ?>
+<xmi:XMI xmlns:xmi="http://www.omg.org/spec/XMI/20131001" xmlns:uml="http://www.omg.org/spec/UML/20161101" xmlns:umldi="http://www.omg.org/spec/UML/20161101/UMLDI" xmlns:dc="http://www.omg.org/spec/UML/20161101/UMLDC">
+	<xmi:Documentation exporter="Enterprise Architect" exporterVersion="6.5" exporterID="1721"/>
+	<uml:Model xmi:type="uml:Model" name="EA_Model">
+		<packagedElement xmi:type="uml:Package" xmi:id="EAPK_FBB46748_50A1_412f_8ACF_D2654D94A1A5" name="SequenceBasicModel">
+			<packagedElement xmi:type="uml:Collaboration" xmi:id="EAID_CB000000_748_50A1_412f_8ACF_D2654D94A1A" name="EA_Collaboration1">
+				<ownedBehavior xmi:type="uml:Interaction" xmi:id="EAID_IN000000_748_50A1_412f_8ACF_D2654D94A1A" name="EA_Interaction1">
+					<lifeline xmi:type="uml:Lifeline" xmi:id="EAID_71D8F1E1_9588_48cb_95C2_E7AE73A9BB8A" name="customer" represents="EAID_AT000000_9588_48cb_95C2_E7AE73A9BB8A"/>
+					<fragment xmi:type="uml:OccurrenceSpecification" xmi:id="EAID_FR000000_9588_48cb_95C2_E7AE73A9BB8A" covered="EAID_71D8F1E1_9588_48cb_95C2_E7AE73A9BB8A"/>
+					<fragment xmi:type="uml:OccurrenceSpecification" xmi:id="EAID_FR000000_0284_43f3_A6F4_F769B0F67668" covered="EAID_11CA4297_0284_43f3_A6F4_F769B0F67668"/>
+					<message xmi:type="uml:Message" xmi:id="EAID_03991153_5E5E_4c5d_BF3C_AED251A28D49" name="createSale()" messageKind="complete" sendEvent="EAID_FR000000_9588_48cb_95C2_E7AE73A9BB8A" receiveEvent="EAID_FR000000_0284_43f3_A6F4_F769B0F67668" signature="EAID_E166475C_0440_4384_84C4_959498869A62"/>
+					<lifeline xmi:type="uml:Lifeline" xmi:id="EAID_44D2BC62_924B_4911_B1B0_BA812044D2C7" name="saleRepository" represents="EAID_AT000000_924B_4911_B1B0_BA812044D2C7"/>
+					<fragment xmi:type="uml:OccurrenceSpecification" xmi:id="EAID_FR000000_924B_4911_B1B0_BA812044D2C7" covered="EAID_44D2BC62_924B_4911_B1B0_BA812044D2C7"/>
+					<fragment xmi:type="uml:OccurrenceSpecification" xmi:id="EAID_FR000001_0284_43f3_A6F4_F769B0F67668" covered="EAID_11CA4297_0284_43f3_A6F4_F769B0F67668"/>
+					<message xmi:type="uml:Message" xmi:id="EAID_8FBF2403_56A9_463d_B3B5_6FCAECE51AC5" name="saveResult" messageKind="complete" messageSort="reply" sendEvent="EAID_FR000000_924B_4911_B1B0_BA812044D2C7" receiveEvent="EAID_FR000001_0284_43f3_A6F4_F769B0F67668"/>
+					<lifeline xmi:type="uml:Lifeline" xmi:id="EAID_11CA4297_0284_43f3_A6F4_F769B0F67668" name="saleService" represents="EAID_AT000000_0284_43f3_A6F4_F769B0F67668"/>
+					<fragment xmi:type="uml:OccurrenceSpecification" xmi:id="EAID_FR000002_0284_43f3_A6F4_F769B0F67668" covered="EAID_11CA4297_0284_43f3_A6F4_F769B0F67668"/>
+					<fragment xmi:type="uml:OccurrenceSpecification" xmi:id="EAID_FR000001_924B_4911_B1B0_BA812044D2C7" covered="EAID_44D2BC62_924B_4911_B1B0_BA812044D2C7"/>
+					<message xmi:type="uml:Message" xmi:id="EAID_AA51A283_8278_4e5d_BB67_BA39E6D92359" name="save()" messageKind="complete" sendEvent="EAID_FR000002_0284_43f3_A6F4_F769B0F67668" receiveEvent="EAID_FR000001_924B_4911_B1B0_BA812044D2C7" signature="EAID_061CC1E6_3603_4c83_9EBB_123C78E47163"/>
+					<fragment xmi:type="uml:OccurrenceSpecification" xmi:id="EAID_FR000003_0284_43f3_A6F4_F769B0F67668" covered="EAID_11CA4297_0284_43f3_A6F4_F769B0F67668"/>
+					<fragment xmi:type="uml:OccurrenceSpecification" xmi:id="EAID_FR000001_9588_48cb_95C2_E7AE73A9BB8A" covered="EAID_71D8F1E1_9588_48cb_95C2_E7AE73A9BB8A"/>
+					<message xmi:type="uml:Message" xmi:id="EAID_AEEA2119_36E8_4230_9429_2A581644E1B8" name="createSaleResult" messageKind="complete" messageSort="reply" sendEvent="EAID_FR000003_0284_43f3_A6F4_F769B0F67668" receiveEvent="EAID_FR000001_9588_48cb_95C2_E7AE73A9BB8A"/>
+				</ownedBehavior>
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_AT000000_9588_48cb_95C2_E7AE73A9BB8A">
+					<type xmi:idref="EAID_09EC8B38_9540_4a90_8977_967146425387"/>
+				</ownedAttribute>
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_AT000000_924B_4911_B1B0_BA812044D2C7">
+					<type xmi:idref="EAID_EB24A04E_7FA4_41bc_ACF4_5A30E2F79DAC"/>
+				</ownedAttribute>
+				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_AT000000_0284_43f3_A6F4_F769B0F67668">
+					<type xmi:idref="EAID_05B8D6AC_2EBA_43ef_BED2_EDFF11E3A6E2"/>
+				</ownedAttribute>
+			</packagedElement>
+			<packagedElement xmi:type="uml:Class" xmi:id="EAID_09EC8B38_9540_4a90_8977_967146425387" name="Customer"/>
+			<packagedElement xmi:type="uml:Class" xmi:id="EAID_EB24A04E_7FA4_41bc_ACF4_5A30E2F79DAC" name="SaleRepository">
+				<ownedOperation xmi:id="EAID_061CC1E6_3603_4c83_9EBB_123C78E47163" name="save">
+					<ownedParameter xmi:id="EAID_RT000000_3603_4c83_9EBB_123C78E47163" name="return" direction="return">
+						<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#Boolean"/>
+					</ownedParameter>
+				</ownedOperation>
+			</packagedElement>
+			<packagedElement xmi:type="uml:Class" xmi:id="EAID_05B8D6AC_2EBA_43ef_BED2_EDFF11E3A6E2" name="SaleService">
+				<ownedOperation xmi:id="EAID_E166475C_0440_4384_84C4_959498869A62" name="createSale">
+					<ownedParameter xmi:id="EAID_RT000000_0440_4384_84C4_959498869A62" name="return" direction="return">
+						<type xmi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20161101/PrimitiveTypes.xmi#Boolean"/>
+					</ownedParameter>
+				</ownedOperation>
+			</packagedElement>
+		</packagedElement>
+	</uml:Model>
+</xmi:XMI>
