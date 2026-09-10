@@ -26,40 +26,67 @@ Tables:
 - `project_members`
 - `project_invitations`
 
-## Planned
-
-The exact table definitions, constraints and migration filenames remain subject
-to review when each increment begins.
-
 ### V3 - UML Model Core
 
-- UML models, base elements, packages and classifiers.
-- Internal UUID identity and external XMI identity remain separate.
-- No Spring, JPA, controller, repository or physical table flags are added to
-  UML classifiers.
+Migration: `V3__create_uml_model_core.sql`
+Status: implemented and verified against PostgreSQL 17.
 
-Candidate tables already represented in the DBML:
+Tables:
 
 - `uml_models`
 - `uml_elements`
 - `uml_packages`
 - `uml_classifiers`
 
-### V4 - UML Features
+The semantic revision and JPA optimistic lock version are separate. Internal
+UUID identity and external XMI identity remain separate. No Spring/JPA target
+flags are stored in UML classifiers.
+
+### V4 - Security and Project Authorization
+
+Migration: `V4__add_security_and_refine_roles.sql`
+Status: implemented and verified against PostgreSQL 17.
+
+Changes:
+
+- `users.system_role`: `USER`, `SUPERUSER`;
+- `project_members.role`: `OWNER`, `COLLABORATOR`, `VIEWER`;
+- `auth_refresh_tokens` for hashed, expirable and revocable refresh tokens;
+- at most one active `OWNER` per project through a partial unique index.
+
+### V4.1 - Superuser Bootstrap
+
+Migration: `V4_1__add_superuser_bootstrap.sql`
+Status: implemented and verified against PostgreSQL 17.
+
+Changes:
+
+- singleton `system_bootstrap` row for installation bootstrap state;
+- initialization from an existing `SUPERUSER`, without deleting or changing users;
+- partial unique index that enforces at most one global `SUPERUSER`;
+- transactional row locking makes the first registration the `SUPERUSER` and all
+  subsequent registrations `USER`.
+
+## Planned
+
+The exact table definitions, constraints and migration filenames remain subject
+to review when each increment begins.
+
+### V5 - UML Features
 
 - properties;
 - operations;
 - parameters;
 - supported primitive types, visibility, direction and multiplicity details.
 
-### V5 - UML Relationships
+### V6 - UML Relationships
 
 - associations and association ends;
 - generalizations;
 - realizations;
 - ownership, multiplicity and navigability references.
 
-### V6 - Validation, Rules, Versioning and Generation Profile
+### V7 - Validation, Rules, Versioning and Generation Profile
 
 - validation rules, runs and issues;
 - immutable model versions;
@@ -73,7 +100,7 @@ Candidate concepts for later DBML review:
 - `generation_profiles`
 - `generation_element_mappings`
 
-### V7 - Logical Relational Model
+### V8 - Logical Relational Model
 
 - logical models;
 - logical tables and columns;
@@ -81,7 +108,7 @@ Candidate concepts for later DBML review:
 - indexes and check constraints;
 - traceability to semantic elements and generation mappings.
 
-### V8 - Generation Pipeline
+### V9 - Generation Pipeline
 
 - asynchronous generation runs;
 - artifact metadata;
@@ -97,33 +124,33 @@ Candidate concepts for later DBML review:
 Artifact bytes and generated ZIPs are stored through `ArtifactStorage`, not as
 large binaries in PostgreSQL and not in the CASEGen Git repository.
 
-### V9 - Diagram Model
+### V10 - Diagram Model
 
 - diagrams;
 - nodes and edges;
 - positions, dimensions, routing and presentation metadata separated from UML
   semantics.
 
-### V10 - UML Sequence Model
+### V11 - UML Sequence Model
 
 - interactions;
 - lifelines;
 - occurrence specifications;
 - synchronous call and reply messages.
 
-### V11 - Interoperability
+### V12 - Interoperability
 
 - file asset metadata;
 - UML/XMI imports and exports;
 - Enterprise Architect interoperability traceability and diagnostics.
 
-### V12 - Collaboration History
+### V13 - Collaboration History
 
 - semantic change history/events;
 - collaboration metadata required for audit and synchronization;
 - version-safe references without making Yjs the authoritative database.
 
-### V13 - Assistant and Mobile Sync
+### V14 - Assistant and Mobile Sync
 
 - client devices and synchronization cursors;
 - assistant sessions, messages and proposed semantic commands;
@@ -134,16 +161,18 @@ large binaries in PostgreSQL and not in the CASEGen Git repository.
 ```text
 V1  Projects                                  implemented
 V2  Users + Project Collaboration             implemented
-V3  UML Model Core                            planned
-V4  UML Features                              planned
-V5  UML Relationships                         planned
-V6  Validation + Rules + Versioning
+V3  UML Model Core                            implemented
+V4  Security + Project Authorization           implemented
+V4.1 Superuser Bootstrap                       implemented
+V5  UML Features                              planned
+V6  UML Relationships                         planned
+V7  Validation + Rules + Versioning
     + Generation Profile                      planned
-V7  Logical Relational Model                  planned
-V8  Generation Pipeline                       planned
-V9  Diagram Model                             planned
-V10 UML Sequence Model                        planned
-V11 Interoperability                          planned
-V12 Collaboration History                     planned
-V13 Assistant and Mobile Sync                 planned
+V8  Logical Relational Model                  planned
+V9  Generation Pipeline                       planned
+V10 Diagram Model                             planned
+V11 UML Sequence Model                        planned
+V12 Interoperability                          planned
+V13 Collaboration History                     planned
+V14 Assistant and Mobile Sync                 planned
 ```

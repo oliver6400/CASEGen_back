@@ -1,0 +1,387 @@
+{
+  "info": {
+    "_postman_id": "3aa5f12e-d28d-43c8-bbe4-d7680e84be37",
+    "name": "CASEGen V3 Semantic Core",
+    "description": "Vertical V3: Project -> UmlModel -> Packages -> Classifiers. No authentication is configured in V3.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "projectId",
+      "value": ""
+    },
+    {
+      "key": "modelId",
+      "value": ""
+    },
+    {
+      "key": "domainPackageId",
+      "value": ""
+    },
+    {
+      "key": "salesPackageId",
+      "value": ""
+    },
+    {
+      "key": "customerClassId",
+      "value": ""
+    },
+    {
+      "key": "identifiableInterfaceId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Create Project",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"CASEGen V3 {{$timestamp}}\",\n  \"description\": \"Postman semantic core flow\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/projects",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "projects"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Project created', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('projectId', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Create UmlModel",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Sales Domain {{$timestamp}}\",\n  \"documentation\": \"UML model created by the V3 Postman flow\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/projects/{{projectId}}/uml-models",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "projects",
+            "{{projectId}}",
+            "uml-models"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('UML model created with revision 0', () => {",
+              "  pm.response.to.have.status(201);",
+              "  pm.expect(pm.response.json().revision).to.eql(0);",
+              "});",
+              "pm.collectionVariables.set('modelId', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Create Domain Package",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"domain\",\n  \"documentation\": \"Root domain package\",\n  \"parentPackageId\": null\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/uml-models/{{modelId}}/packages",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "uml-models",
+            "{{modelId}}",
+            "packages"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Root package increments revision to 1', () => {",
+              "  pm.response.to.have.status(201);",
+              "  pm.expect(pm.response.json().modelRevision).to.eql(1);",
+              "});",
+              "pm.collectionVariables.set('domainPackageId', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Create Sales Package",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"sales\",\n  \"documentation\": \"Child sales package\",\n  \"parentPackageId\": \"{{domainPackageId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/uml-models/{{modelId}}/packages",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "uml-models",
+            "{{modelId}}",
+            "packages"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Child package increments revision to 2', () => {",
+              "  pm.response.to.have.status(201);",
+              "  pm.expect(pm.response.json().parentPackageId).to.eql(pm.collectionVariables.get('domainPackageId'));",
+              "  pm.expect(pm.response.json().modelRevision).to.eql(2);",
+              "});",
+              "pm.collectionVariables.set('salesPackageId', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Create Customer Class",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Customer\",\n  \"documentation\": \"Customer aggregate\",\n  \"packageId\": \"{{salesPackageId}}\",\n  \"kind\": \"CLASS\",\n  \"visibility\": \"PUBLIC\",\n  \"isAbstract\": false,\n  \"isActive\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/uml-models/{{modelId}}/classifiers",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "uml-models",
+            "{{modelId}}",
+            "classifiers"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Class increments revision to 3', () => {",
+              "  pm.response.to.have.status(201);",
+              "  pm.expect(pm.response.json().kind).to.eql('CLASS');",
+              "  pm.expect(pm.response.json().modelRevision).to.eql(3);",
+              "});",
+              "pm.collectionVariables.set('customerClassId', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Create Identifiable Interface",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Identifiable\",\n  \"documentation\": \"Common identity contract\",\n  \"packageId\": \"{{domainPackageId}}\",\n  \"kind\": \"INTERFACE\",\n  \"visibility\": \"PUBLIC\",\n  \"isAbstract\": true,\n  \"isActive\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/uml-models/{{modelId}}/classifiers",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "uml-models",
+            "{{modelId}}",
+            "classifiers"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Interface increments revision to 4', () => {",
+              "  pm.response.to.have.status(201);",
+              "  pm.expect(pm.response.json().kind).to.eql('INTERFACE');",
+              "  pm.expect(pm.response.json().isActive).to.eql(false);",
+              "  pm.expect(pm.response.json().modelRevision).to.eql(4);",
+              "});",
+              "pm.collectionVariables.set('identifiableInterfaceId', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 List Packages",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/uml-models/{{modelId}}/packages",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "uml-models",
+            "{{modelId}}",
+            "packages"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Packages are listed', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json()).to.have.lengthOf(2);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 List Classifiers",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/uml-models/{{modelId}}/classifiers",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "uml-models",
+            "{{modelId}}",
+            "classifiers"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Classifiers are listed', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json()).to.have.lengthOf(2);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Get UmlModel",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/uml-models/{{modelId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "uml-models",
+            "{{modelId}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Model has four semantic mutations', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().revision).to.eql(4);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

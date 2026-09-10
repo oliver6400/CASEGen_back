@@ -59,9 +59,14 @@ public class User {
     }
 
     public User(String email, String passwordHash, String displayName) {
+        this(email, passwordHash, displayName, SystemRole.USER);
+    }
+
+    public User(String email, String passwordHash, String displayName, SystemRole systemRole) {
         this.email = email;
         this.passwordHash = passwordHash;
         this.displayName = displayName;
+        this.systemRole = systemRole;
     }
 
     @PrePersist

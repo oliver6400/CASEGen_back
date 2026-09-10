@@ -16,16 +16,22 @@ import com.casegen.project.repository.ProjectInvitationRepository;
 import com.casegen.project.repository.ProjectMemberRepository;
 import com.casegen.project.repository.ProjectRepository;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.TestConstructor;
 
 @DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @EnabledIfEnvironmentVariable(named = "DB_URL", matches = "jdbc:postgresql:.*")
+@TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class ProjectCollaborationPersistenceIntegrationTest {
 
     private final UserRepository userRepository;
@@ -66,7 +72,7 @@ class ProjectCollaborationPersistenceIntegrationTest {
                 INSERT INTO users (id, email, password_hash, display_name, system_role, enabled, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, UUID.randomUUID(), "invalid-role@example.com", "hash", "Invalid role", "INVALID", true,
-                Instant.now(), Instant.now()));
+                sqlNow(), sqlNow()));
     }
 
     @Test
@@ -79,6 +85,18 @@ class ProjectCollaborationPersistenceIntegrationTest {
 
         assertNotNull(member.getId());
         assertEquals(ProjectMemberRole.COLLABORATOR, member.getRole());
+    }
+
+    @Test
+    void rejectsSecondActiveOwnerForSameProject() {
+        Project project = persistProject();
+        User firstOwner = persistUser("first-owner@example.com");
+        User secondOwner = persistUser("second-owner@example.com");
+        projectMemberRepository.saveAndFlush(
+                new ProjectMember(project, firstOwner, ProjectMemberRole.OWNER));
+
+        assertThrows(DataIntegrityViolationException.class, () -> projectMemberRepository.saveAndFlush(
+                new ProjectMember(project, secondOwner, ProjectMemberRole.OWNER)));
     }
 
     @Test
@@ -98,7 +116,7 @@ class ProjectCollaborationPersistenceIntegrationTest {
         assertThrows(DataIntegrityViolationException.class, () -> jdbcTemplate.update("""
                 INSERT INTO project_members (id, project_id, user_id, role, status, created_at)
                 VALUES (?, ?, ?, ?, ?, ?)
-                """, UUID.randomUUID(), UUID.randomUUID(), user.getId(), "COLLABORATOR", "ACTIVE", Instant.now()));
+                """, UUID.randomUUID(), UUID.randomUUID(), user.getId(), "COLLABORATOR", "ACTIVE", sqlNow()));
     }
 
     @Test
@@ -108,7 +126,7 @@ class ProjectCollaborationPersistenceIntegrationTest {
         assertThrows(DataIntegrityViolationException.class, () -> jdbcTemplate.update("""
                 INSERT INTO project_members (id, project_id, user_id, role, status, created_at)
                 VALUES (?, ?, ?, ?, ?, ?)
-                """, UUID.randomUUID(), project.getId(), UUID.randomUUID(), "COLLABORATOR", "ACTIVE", Instant.now()));
+                """, UUID.randomUUID(), project.getId(), UUID.randomUUID(), "COLLABORATOR", "ACTIVE", sqlNow()));
     }
 
     @Test
@@ -119,7 +137,7 @@ class ProjectCollaborationPersistenceIntegrationTest {
         assertThrows(DataIntegrityViolationException.class, () -> jdbcTemplate.update("""
                 INSERT INTO project_members (id, project_id, user_id, role, status, created_at)
                 VALUES (?, ?, ?, ?, ?, ?)
-                """, UUID.randomUUID(), project.getId(), user.getId(), "INVALID", "ACTIVE", Instant.now()));
+                """, UUID.randomUUID(), project.getId(), user.getId(), "INVALID", "ACTIVE", sqlNow()));
     }
 
     @Test
@@ -155,7 +173,7 @@ class ProjectCollaborationPersistenceIntegrationTest {
                 INSERT INTO project_invitations (id, project_id, invited_by, email, role, token_hash, status, expires_at, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, UUID.randomUUID(), UUID.randomUUID(), inviter.getId(), "invitee@example.com", "VIEWER",
-                "unknown-project-token", "PENDING", Instant.now().plus(7, ChronoUnit.DAYS), Instant.now()));
+                "unknown-project-token", "PENDING", sqlNow().plusDays(7), sqlNow()));
     }
 
     @Test
@@ -166,7 +184,7 @@ class ProjectCollaborationPersistenceIntegrationTest {
                 INSERT INTO project_invitations (id, project_id, invited_by, email, role, token_hash, status, expires_at, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, UUID.randomUUID(), project.getId(), UUID.randomUUID(), "invitee@example.com", "VIEWER",
-                "unknown-inviter-token", "PENDING", Instant.now().plus(7, ChronoUnit.DAYS), Instant.now()));
+                "unknown-inviter-token", "PENDING", sqlNow().plusDays(7), sqlNow()));
     }
 
     @Test
@@ -178,7 +196,7 @@ class ProjectCollaborationPersistenceIntegrationTest {
                 INSERT INTO project_invitations (id, project_id, invited_by, email, role, token_hash, status, expires_at, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, UUID.randomUUID(), project.getId(), inviter.getId(), "invitee@example.com", "HOST",
-                "host-token", "PENDING", Instant.now().plus(7, ChronoUnit.DAYS), Instant.now()));
+                "host-token", "PENDING", sqlNow().plusDays(7), sqlNow()));
     }
 
     private User persistUser(String email) {
@@ -187,5 +205,9 @@ class ProjectCollaborationPersistenceIntegrationTest {
 
     private Project persistProject() {
         return projectRepository.saveAndFlush(new Project("CASEGen project", "Persistence test"));
+    }
+
+    private OffsetDateTime sqlNow() {
+        return OffsetDateTime.now(ZoneOffset.UTC);
     }
 }

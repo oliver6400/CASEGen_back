@@ -61,6 +61,7 @@ public class ProjectMember {
         this.project = project;
         this.user = user;
         this.role = role;
+        this.joinedAt = Instant.now();
     }
 
     @PrePersist

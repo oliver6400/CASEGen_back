@@ -3,8 +3,8 @@
 // Version: 1.0
 //
 // IMPORTANT:
-// - projects already exists in Flyway V1.
-// - Do not recreate projects from this DBML.
+// - V1, V2, V3, V4 and V4.1 are implemented through Flyway.
+// - Do not recreate or alter implemented tables from this DBML.
 // - Flyway SQL is the executable source of truth.
 // - UUID is used for persistent identifiers.
 //////////////////////////////////////////////////////////
@@ -55,7 +55,10 @@ Table users {
   Note: '''
   system_role allowed values:
   - USER
-  - ADMIN
+  - SUPERUSER
+
+  V4.1 adds a partial unique index for system_role = SUPERUSER.
+  PostgreSQL, not this DBML index block, is the source of truth for its predicate.
   '''
 }
 
@@ -80,11 +83,12 @@ Table project_members {
     (project_id, user_id) [unique, name: 'uq_project_members_project_user']
     project_id [name: 'idx_project_members_project']
     user_id [name: 'idx_project_members_user']
+    project_id [unique, name: 'uq_project_members_one_active_owner']
   }
 
   Note: '''
   role:
-  - HOST
+  - OWNER
   - COLLABORATOR
   - VIEWER
 
@@ -92,6 +96,9 @@ Table project_members {
   - INVITED
   - ACTIVE
   - REVOKED
+
+  uq_project_members_one_active_owner is a partial unique index:
+  WHERE role = 'OWNER' AND status = 'ACTIVE'.
   '''
 }
 
@@ -130,7 +137,7 @@ Table project_invitations {
   - COLLABORATOR
   - VIEWER
 
-  An invitation should not assign HOST directly.
+  An invitation should not assign OWNER directly.
 
   status:
   - PENDING
@@ -153,8 +160,53 @@ Ref: project_invitations.project_id > projects.id
 
 Ref: project_invitations.invited_by > users.id
 
+
 //////////////////////////////////////////////////////////
-// V3 - UML MODEL CORE
+// V4 - SECURITY AND PROJECT AUTHORIZATION (IMPLEMENTED)
+//////////////////////////////////////////////////////////
+
+Table auth_refresh_tokens {
+  id uuid [pk]
+
+  user_id uuid [not null]
+  token_hash varchar(255) [not null, unique]
+  expires_at timestamptz [not null]
+  revoked_at timestamptz
+  created_at timestamptz [not null]
+
+  indexes {
+    user_id [name: 'idx_auth_refresh_tokens_user']
+  }
+
+  Note: '''
+  Only a SHA-256 hash of each opaque refresh token is persisted.
+  A non-null revoked_at makes the token unusable.
+  '''
+}
+
+Ref: auth_refresh_tokens.user_id > users.id
+
+//////////////////////////////////////////////////////////
+// V4.1 - SUPERUSER BOOTSTRAP (IMPLEMENTED)
+//////////////////////////////////////////////////////////
+
+Table system_bootstrap {
+  id smallint [pk]
+  superuser_created boolean [not null, default: false]
+  superuser_user_id uuid
+  completed_at timestamptz
+
+  Note: '''
+  Singleton row constrained to id = 1.
+  When completed, superuser_user_id references the first registered SUPERUSER.
+  Registration locks this row so only one concurrent first registration can claim bootstrap.
+  '''
+}
+
+Ref: system_bootstrap.superuser_user_id - users.id
+
+//////////////////////////////////////////////////////////
+// V3 - UML MODEL CORE (IMPLEMENTED)
 //////////////////////////////////////////////////////////
 
 Table uml_models {
@@ -168,6 +220,7 @@ Table uml_models {
   uml_version varchar(20) [not null, default: '2.5.1']
 
   revision bigint [not null, default: 0]
+  lock_version bigint [not null, default: 0]
 
   status varchar(20) [not null, default: 'EDITABLE']
 
@@ -186,7 +239,8 @@ Table uml_models {
   - EDITABLE
   - ARCHIVED
 
-  revision must be >= 0.
+  revision must be >= 0 and represents CASEGen semantic revision.
+  lock_version must be >= 0 and is used for JPA optimistic locking.
   '''
 }
 
@@ -198,7 +252,7 @@ Table uml_elements {
 
   element_type varchar(40) [not null]
 
-  name varchar(180]
+  name varchar(180)
 
   documentation text
 
@@ -210,6 +264,7 @@ Table uml_elements {
   indexes {
     model_id [name: 'idx_uml_elements_model']
     (model_id, element_type) [name: 'idx_uml_elements_model_type']
+    (model_id, external_xmi_id) [unique, name: 'uq_uml_elements_model_external_xmi_id']
   }
 
   Note: '''
@@ -218,12 +273,22 @@ Table uml_elements {
   external_xmi_id is an external interoperability
   identifier and MUST NEVER be used as CASEGen PK.
 
-  V3 element types:
+  The database CHECK recognizes the frozen contract types:
   - PACKAGE
   - CLASSIFIER
+  - PROPERTY
+  - OPERATION
+  - PARAMETER
+  - ASSOCIATION
+  - GENERALIZATION
+  - REALIZATION
+  - INTERACTION
+  - LIFELINE
+  - OCCURRENCE
+  - MESSAGE
 
-  Additional element types are introduced through
-  future Flyway migrations.
+  The external XMI unique index is partial:
+  WHERE external_xmi_id IS NOT NULL.
   '''
 }
 
@@ -247,6 +312,10 @@ Table uml_classifiers {
   is_abstract boolean [not null, default: false]
   is_active boolean [not null, default: false]
 
+  indexes {
+    package_id [name: 'idx_uml_classifiers_package']
+  }
+
   Note: '''
   kind:
   - CLASS
@@ -257,6 +326,8 @@ Table uml_classifiers {
   - PRIVATE
   - PROTECTED
   - PACKAGE
+
+  INTERFACE classifiers cannot be active.
   '''
 }
 
