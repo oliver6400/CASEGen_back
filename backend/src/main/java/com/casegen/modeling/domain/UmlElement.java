@@ -65,6 +65,11 @@ public class UmlElement {
         this.documentation = documentation;
     }
 
+    public void update(String name, String documentation) {
+        this.name = name;
+        this.documentation = documentation;
+    }
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();

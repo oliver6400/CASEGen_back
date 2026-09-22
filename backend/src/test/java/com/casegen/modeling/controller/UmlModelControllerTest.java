@@ -11,14 +11,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.casegen.modeling.command.CreateUmlClassifierCommand;
 import com.casegen.modeling.command.CreateUmlModelCommand;
+import com.casegen.modeling.command.CreateUmlOperationCommand;
 import com.casegen.modeling.command.CreateUmlPackageCommand;
+import com.casegen.modeling.command.CreateUmlParameterCommand;
+import com.casegen.modeling.command.CreateUmlPropertyCommand;
 import com.casegen.modeling.domain.ClassifierKind;
+import com.casegen.modeling.domain.ParameterDirection;
+import com.casegen.modeling.domain.PrimitiveType;
+import com.casegen.modeling.domain.TypeKind;
 import com.casegen.modeling.domain.UmlElementType;
 import com.casegen.modeling.domain.UmlModelStatus;
 import com.casegen.modeling.domain.Visibility;
 import com.casegen.modeling.dto.UmlClassifierResponse;
 import com.casegen.modeling.dto.UmlModelResponse;
+import com.casegen.modeling.dto.UmlOperationResponse;
 import com.casegen.modeling.dto.UmlPackageResponse;
+import com.casegen.modeling.dto.UmlParameterResponse;
+import com.casegen.modeling.dto.UmlPropertyResponse;
 import com.casegen.modeling.exception.SemanticExceptionHandler;
 import com.casegen.modeling.service.UmlModelService;
 import java.time.Instant;
@@ -133,6 +142,79 @@ class UmlModelControllerTest {
         mockMvc.perform(get("/api/uml-models/{modelId}/packages", modelId))
                 .andExpect(status().isOk());
         mockMvc.perform(get("/api/uml-models/{modelId}/classifiers", modelId))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void exposesUmlFeatureCreateAndReadEndpoints() throws Exception {
+        UUID modelId = UUID.randomUUID();
+        UUID classifierId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID operationId = UUID.randomUUID();
+        UUID parameterId = UUID.randomUUID();
+        Instant now = Instant.parse("2026-09-09T00:00:00Z");
+        when(service.createProperty(eq(modelId), eq(classifierId), any(CreateUmlPropertyCommand.class)))
+                .thenReturn(new UmlPropertyResponse(
+                        propertyId, modelId, UmlElementType.PROPERTY, "email", null,
+                        classifierId, Visibility.PRIVATE, TypeKind.PRIMITIVE, PrimitiveType.STRING,
+                        null, 1, 1, false, false, false, 1, now, now));
+        when(service.createOperation(eq(modelId), eq(classifierId), any(CreateUmlOperationCommand.class)))
+                .thenReturn(new UmlOperationResponse(
+                        operationId, modelId, UmlElementType.OPERATION, "register", null,
+                        classifierId, Visibility.PUBLIC, false, false, false, 2, now, now));
+        when(service.createParameter(eq(modelId), eq(operationId), any(CreateUmlParameterCommand.class)))
+                .thenReturn(new UmlParameterResponse(
+                        parameterId, modelId, UmlElementType.PARAMETER, "email", null,
+                        operationId, ParameterDirection.IN, TypeKind.PRIMITIVE, PrimitiveType.STRING,
+                        null, 1, 1, 0, 3, now, now));
+        when(service.listProperties(modelId, classifierId)).thenReturn(List.of());
+        when(service.listOperations(modelId, classifierId)).thenReturn(List.of());
+        when(service.listParameters(modelId, operationId)).thenReturn(List.of());
+
+        mockMvc.perform(post("/api/uml-models/{modelId}/classifiers/{classifierId}/properties",
+                        modelId, classifierId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "email",
+                                  "typeKind": "PRIMITIVE",
+                                  "primitiveType": "STRING",
+                                  "lowerBound": 1,
+                                  "upperBound": 1
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.elementType").value("PROPERTY"));
+        mockMvc.perform(get("/api/uml-models/{modelId}/classifiers/{classifierId}/properties",
+                        modelId, classifierId))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/uml-models/{modelId}/classifiers/{classifierId}/operations",
+                        modelId, classifierId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"register\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.elementType").value("OPERATION"));
+        mockMvc.perform(get("/api/uml-models/{modelId}/classifiers/{classifierId}/operations",
+                        modelId, classifierId))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/uml-models/{modelId}/operations/{operationId}/parameters",
+                        modelId, operationId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "email",
+                                  "direction": "IN",
+                                  "typeKind": "PRIMITIVE",
+                                  "primitiveType": "STRING",
+                                  "position": 0
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.direction").value("IN"));
+        mockMvc.perform(get("/api/uml-models/{modelId}/operations/{operationId}/parameters",
+                        modelId, operationId))
                 .andExpect(status().isOk());
     }
 }

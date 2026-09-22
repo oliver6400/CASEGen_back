@@ -22,13 +22,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestConstructor;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -37,9 +42,24 @@ import org.springframework.transaction.support.TransactionTemplate;
 @AutoConfigureMockMvc
 @EnabledIfEnvironmentVariable(named = "DB_URL", matches = "jdbc:postgresql:.*")
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class SuperuserBootstrapIntegrationTest {
 
     private static final String PASSWORD = "BootstrapPassword123!";
+    private static final String TEST_SCHEMA =
+            "casegen_bootstrap_test_" + UUID.randomUUID().toString().replace("-", "");
+
+    @DynamicPropertySource
+    static void isolatedDatabaseSchema(DynamicPropertyRegistry registry) {
+        String databaseUrl = System.getenv("DB_URL");
+        String separator = databaseUrl.contains("?") ? "&" : "?";
+        registry.add("spring.datasource.url",
+                () -> databaseUrl + separator + "currentSchema=" + TEST_SCHEMA);
+        registry.add("spring.flyway.schemas", () -> TEST_SCHEMA);
+        registry.add("spring.flyway.default-schema", () -> TEST_SCHEMA);
+        registry.add("spring.flyway.create-schemas", () -> "true");
+    }
 
     private final MockMvc mockMvc;
     private final AuthService authService;
@@ -61,6 +81,11 @@ class SuperuserBootstrapIntegrationTest {
         this.bootstrapRepository = bootstrapRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.transactionTemplate = transactionTemplate;
+    }
+
+    @AfterAll
+    void removeIsolatedSchema() {
+        jdbcTemplate.execute("DROP SCHEMA " + TEST_SCHEMA + " CASCADE");
     }
 
     @Test

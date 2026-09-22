@@ -12,4 +12,9 @@ public interface ProjectInvitationRepository extends JpaRepository<ProjectInvita
     Optional<ProjectInvitation> findByTokenHash(String tokenHash);
 
     List<ProjectInvitation> findByEmailAndStatus(String email, ProjectInvitationStatus status);
+    List<ProjectInvitation> findByProjectIdOrderByCreatedAtDesc(UUID projectId);
+    List<ProjectInvitation> findByEmailIgnoreCaseAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(String email, ProjectInvitationStatus status, java.time.Instant now);
+    boolean existsByProjectIdAndEmailIgnoreCaseAndStatusAndExpiresAtAfter(UUID projectId, String email, ProjectInvitationStatus status, java.time.Instant now);
+    @org.springframework.data.jpa.repository.Query("select i.project.id from ProjectInvitation i where i.id=:id")
+    Optional<UUID> findProjectIdByInvitationId(UUID id);
 }

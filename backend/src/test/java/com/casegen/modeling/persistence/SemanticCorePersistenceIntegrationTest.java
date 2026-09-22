@@ -14,6 +14,7 @@ import com.casegen.modeling.exception.SemanticErrorCode;
 import com.casegen.modeling.exception.SemanticException;
 import com.casegen.modeling.repository.UmlElementRepository;
 import com.casegen.modeling.service.UmlModelService;
+import com.casegen.modeling.service.DiagramRepresentationCleanupService;
 import com.casegen.project.domain.Project;
 import com.casegen.project.repository.ProjectRepository;
 import com.casegen.project.service.ProjectAuthorizationService;
@@ -30,7 +31,8 @@ import org.springframework.test.context.TestConstructor;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({UmlModelService.class, SemanticCorePersistenceIntegrationTest.AuthorizationTestConfig.class})
+@Import({UmlModelService.class, DiagramRepresentationCleanupService.class,
+        SemanticCorePersistenceIntegrationTest.AuthorizationTestConfig.class})
 @EnabledIfEnvironmentVariable(named = "DB_URL", matches = "jdbc:postgresql:.*")
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class SemanticCorePersistenceIntegrationTest {
@@ -41,6 +43,11 @@ class SemanticCorePersistenceIntegrationTest {
         @Bean
         ProjectAuthorizationService projectAuthorizationService() {
             return org.mockito.Mockito.mock(ProjectAuthorizationService.class);
+        }
+
+        @Bean
+        com.casegen.collaboration.RealtimeEventPublisher realtimeEventPublisher() {
+            return org.mockito.Mockito.mock(com.casegen.collaboration.RealtimeEventPublisher.class);
         }
     }
 

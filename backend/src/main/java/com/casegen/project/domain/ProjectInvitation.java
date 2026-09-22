@@ -94,6 +94,10 @@ public class ProjectInvitation {
         return id;
     }
 
+    public void accept() { status = ProjectInvitationStatus.ACCEPTED; acceptedAt = Instant.now(); }
+    public void reject() { status = ProjectInvitationStatus.REJECTED; }
+    public void revoke() { status = ProjectInvitationStatus.REVOKED; }
+
     public Project getProject() {
         return project;
     }

@@ -69,6 +69,18 @@ public class UmlClassifier {
         this.active = active;
     }
 
+    public void update(UmlPackage umlPackage, ClassifierKind kind, Visibility visibility,
+            boolean abstractClassifier, boolean active) {
+        if (kind == ClassifierKind.INTERFACE && active) {
+            throw new IllegalArgumentException("An INTERFACE cannot be active");
+        }
+        this.umlPackage = umlPackage;
+        this.kind = java.util.Objects.requireNonNull(kind, "Classifier kind is required");
+        this.visibility = java.util.Objects.requireNonNull(visibility, "Visibility is required");
+        this.abstractClassifier = abstractClassifier;
+        this.active = active;
+    }
+
     public UUID getElementId() { return elementId; }
     public UmlElement getElement() { return element; }
     public UmlPackage getUmlPackage() { return umlPackage; }

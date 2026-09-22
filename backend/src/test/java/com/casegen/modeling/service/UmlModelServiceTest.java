@@ -21,7 +21,10 @@ import com.casegen.modeling.exception.SemanticException;
 import com.casegen.modeling.repository.UmlClassifierRepository;
 import com.casegen.modeling.repository.UmlElementRepository;
 import com.casegen.modeling.repository.UmlModelRepository;
+import com.casegen.modeling.repository.UmlOperationRepository;
 import com.casegen.modeling.repository.UmlPackageRepository;
+import com.casegen.modeling.repository.UmlParameterRepository;
+import com.casegen.modeling.repository.UmlPropertyRepository;
 import com.casegen.project.domain.Project;
 import com.casegen.project.repository.ProjectRepository;
 import com.casegen.project.service.ProjectAuthorizationService;
@@ -38,8 +41,12 @@ class UmlModelServiceTest {
     private UmlElementRepository elementRepository;
     private UmlPackageRepository packageRepository;
     private UmlClassifierRepository classifierRepository;
+    private UmlPropertyRepository propertyRepository;
+    private UmlOperationRepository operationRepository;
+    private UmlParameterRepository parameterRepository;
     private UmlModelService service;
     private ProjectAuthorizationService authorizationService;
+    private com.casegen.collaboration.RealtimeEventPublisher realtimeEvents;
 
     @BeforeEach
     void setUp() {
@@ -48,16 +55,23 @@ class UmlModelServiceTest {
         elementRepository = Mockito.mock(UmlElementRepository.class);
         packageRepository = Mockito.mock(UmlPackageRepository.class);
         classifierRepository = Mockito.mock(UmlClassifierRepository.class);
+        propertyRepository = Mockito.mock(UmlPropertyRepository.class);
+        operationRepository = Mockito.mock(UmlOperationRepository.class);
+        parameterRepository = Mockito.mock(UmlParameterRepository.class);
         authorizationService = Mockito.mock(ProjectAuthorizationService.class);
+        realtimeEvents = Mockito.mock(com.casegen.collaboration.RealtimeEventPublisher.class);
         service = new UmlModelService(projectRepository, modelRepository, elementRepository,
-                packageRepository, classifierRepository, authorizationService);
+                packageRepository, classifierRepository, propertyRepository,
+                operationRepository, parameterRepository, authorizationService,
+                Mockito.mock(DiagramRepresentationCleanupService.class),
+                realtimeEvents);
     }
 
     @Test
     void incrementsRevisionExactlyOnceWhenCreatingPackage() {
         UUID modelId = UUID.randomUUID();
         UmlModel model = new UmlModel(new Project("Project", null), "Domain", null, null);
-        when(modelRepository.findById(modelId)).thenReturn(Optional.of(model));
+        when(modelRepository.findByIdForUpdate(modelId)).thenReturn(Optional.of(model));
         when(elementRepository.save(any(UmlElement.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(packageRepository.save(any(UmlPackage.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(modelRepository.saveAndFlush(model)).thenReturn(model);
@@ -67,13 +81,16 @@ class UmlModelServiceTest {
         assertEquals(1, model.getRevision());
         assertEquals(1, response.modelRevision());
         assertEquals(UmlElementType.PACKAGE, response.elementType());
+        verify(realtimeEvents).semantic(
+                com.casegen.collaboration.RealtimeEventType.PACKAGE_CREATED,
+                model.getProject().getId(), modelId, response.id(), 1L);
     }
 
     @Test
     void rejectsActiveInterfaceBeforePersistingRootElement() {
         UUID modelId = UUID.randomUUID();
         UmlModel model = new UmlModel(new Project("Project", null), "Domain", null, null);
-        when(modelRepository.findById(modelId)).thenReturn(Optional.of(model));
+        when(modelRepository.findByIdForUpdate(modelId)).thenReturn(Optional.of(model));
 
         SemanticException exception = assertThrows(SemanticException.class,
                 () -> service.createClassifier(modelId, new CreateUmlClassifierCommand(
@@ -91,7 +108,7 @@ class UmlModelServiceTest {
         UUID modelId = UUID.randomUUID();
         UmlModel model = new UmlModel(new Project("Project", null), "Domain", null, null);
         model.archive();
-        when(modelRepository.findById(modelId)).thenReturn(Optional.of(model));
+        when(modelRepository.findByIdForUpdate(modelId)).thenReturn(Optional.of(model));
 
         SemanticException exception = assertThrows(SemanticException.class,
                 () -> service.createPackage(modelId, new CreateUmlPackageCommand("domain", null, null)));
@@ -108,7 +125,7 @@ class UmlModelServiceTest {
         UmlModel otherModel = Mockito.mock(UmlModel.class);
         UmlElement packageElement = Mockito.mock(UmlElement.class);
         UmlPackage umlPackage = Mockito.mock(UmlPackage.class);
-        when(modelRepository.findById(modelId)).thenReturn(Optional.of(targetModel));
+        when(modelRepository.findByIdForUpdate(modelId)).thenReturn(Optional.of(targetModel));
         when(packageRepository.findById(packageId)).thenReturn(Optional.of(umlPackage));
         when(umlPackage.getElement()).thenReturn(packageElement);
         when(packageElement.getModel()).thenReturn(otherModel);

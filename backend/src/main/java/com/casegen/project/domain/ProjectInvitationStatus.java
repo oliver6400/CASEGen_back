@@ -4,5 +4,6 @@ public enum ProjectInvitationStatus {
     PENDING,
     ACCEPTED,
     EXPIRED,
-    REVOKED
+    REVOKED,
+    REJECTED
 }

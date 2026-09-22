@@ -1,6 +1,8 @@
 package com.casegen.project.domain;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -29,6 +31,13 @@ public class Project {
     @Size(max = 500)
     @Column(length = 500)
     private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ProjectVisibility visibility = ProjectVisibility.PRIVATE;
+
+    public ProjectVisibility getVisibility() { return visibility; }
+    public void changeVisibility(ProjectVisibility visibility) { this.visibility = java.util.Objects.requireNonNull(visibility); }
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

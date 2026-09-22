@@ -73,6 +73,18 @@ public class ProjectMember {
         return id;
     }
 
+    public void activate(ProjectMemberRole role) {
+        protectOwner();
+        this.role = role;
+        this.status = ProjectMemberStatus.ACTIVE;
+        this.joinedAt = Instant.now();
+    }
+    public void changeRole(ProjectMemberRole role) { protectOwner(); this.role = role; }
+    public void revoke() { protectOwner(); this.status = ProjectMemberStatus.REVOKED; }
+    private void protectOwner() {
+        if (this.role == ProjectMemberRole.OWNER) throw new IllegalStateException("OWNER cannot be changed through member management");
+    }
+
     public Project getProject() {
         return project;
     }

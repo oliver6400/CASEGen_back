@@ -67,40 +67,79 @@ Changes:
 - transactional row locking makes the first registration the `SUPERUSER` and all
   subsequent registrations `USER`.
 
+### V5 - UML Features
+
+Migration: `V5__create_uml_features.sql`
+Status: implemented and verified against PostgreSQL 17.
+
+Tables:
+
+- `uml_properties` with primitive/classifier typing and multiplicity;
+- `uml_operations` without a duplicated return type;
+- `uml_parameters` with direction, ordered positions and a maximum of one
+  `RETURN` parameter per operation.
+
+All feature mutations create the root `uml_elements` row and specialization in
+one transaction and increment the semantic model revision exactly once.
+
+### V6 - UML Class Relationships
+
+Migration: `V6__create_uml_relationships.sql`
+Status: implemented and verified against PostgreSQL 17.
+
+Changes:
+
+- nullable `uml_properties.owner_classifier_id` for association-owned ends;
+- binary `uml_associations` with exactly two property-based ends created atomically;
+- navigability, aggregation, composition, end ownership and multiplicity;
+- acyclic classifier generalizations;
+- realizations whose supplier must be an Interface.
+
 ## Planned
 
 The exact table definitions, constraints and migration filenames remain subject
 to review when each increment begins.
 
-### V5 - UML Features
+### V7 - Class Diagram persistence
 
-- properties;
-- operations;
-- parameters;
-- supported primitive types, visibility, direction and multiplicity details.
+Migration: `V7__create_class_diagram_model.sql`
+Status: implemented and verified against PostgreSQL 17.
 
-### V6 - UML Relationships
+- class diagrams are projections of one UML model;
+- nodes persist element placement, size and z-index;
+- edges reference existing semantic UML relationships and diagram nodes;
+- notation changes advance `Diagram.revision` without changing `UmlModel.revision`.
 
-- associations and association ends;
-- generalizations;
-- realizations;
-- ownership, multiplicity and navigability references.
+V7.1 adds notation-only edge routing metadata (`source_side`, `target_side`,
+distributed anchor indexes and JSON waypoints). It does not add UML semantics
+and therefore remains compatible with XMI import/export.
 
-### V7 - Validation, Rules, Versioning and Generation Profile
+### V8 - Validation, ModelVersion and GenerationProfile
 
-- validation rules, runs and issues;
+- synchronous semantic/generation validation runs and issues;
 - immutable model versions;
 - generation profiles and element mappings.
 
 Generation decisions belong to profiles/mappings, never to
 `uml_classifiers`.
 
-Candidate concepts for later DBML review:
+Migration: `V8__create_validation_versions_and_generation_profiles.sql`.
+Validation records model revision and generation configuration checksum; versions
+require the latest VALID, current run under the existing model lock. Snapshots
+contain all V3/V5/V6 semantic tables and generation configuration; diagram data
+is captured separately. Model versions are append-only, enforced by a trigger.
+No UML revision changes for validation, version creation or profile editing.
+Profile/mapping changes invalidate validations through their configuration hash.
 
-- `generation_profiles`
-- `generation_element_mappings`
+### V8.1 - Project Sharing
 
-### V8 - Logical Relational Model
+Migration: `V8_1__add_project_sharing.sql`. Existing projects remain PRIVATE.
+PUBLIC permits authenticated read access only. Invitations reuse V2 tables,
+with REJECTED added to the status constraint. Acceptance requires the signed-in
+recipient email, a pending unexpired invitation, and a project lock. OWNER cannot
+be altered/revoked through member management. No SMTP or generation implementation.
+
+### V9 - Logical Relational Model
 
 - logical models;
 - logical tables and columns;
@@ -108,7 +147,53 @@ Candidate concepts for later DBML review:
 - indexes and check constraints;
 - traceability to semantic elements and generation mappings.
 
-### V9 - Generation Pipeline
+Migration: `V9__create_logical_relational_model.sql`. Construction uses an immutable
+ModelVersion semantic snapshot and a captured GenerationProfile/mappings snapshot.
+No reads from editable UML tables for transformation. Invalid configurations persist
+issues and zero tables; VALID results persist ordered PK/FK/UNIQUE/INDEX columns.
+Sources deliberately retain UML UUIDs without live foreign keys. SINGLE-parent
+JOINED is the MVP inheritance strategy. No manual logical edits or code generation.
+Profile deletion is restricted while derived logical models reference it.
+
+### V9.1 - Validation creation order
+
+Migration: `V9_1__add_validation_run_order.sql`.
+
+Adds a unique sequence-backed `validation_runs.run_order`. Latest validation is
+selected by creation order, not `started_at`, so historical future timestamps
+cannot replace a newly completed validation after refetch or version creation.
+Historical rows are backfilled by model, semantic revision, timestamp and UUID;
+timestamps, issues and immutable ModelVersion snapshots remain unchanged.
+This patch does not change V9 transformation or diagram geometry.
+
+### V10 - Spring Boot backend generation
+
+Migration: `V10__create_generation_pipeline.sql`.
+
+Persists generation lifecycle, bounded verification logs and ZIP artifact metadata.
+Every run is traceable to a VALID LogicalModel, immutable ModelVersion, frozen
+GenerationProfile and requester. Source workspaces and ZIP bytes live below the
+configured runtime storage and are excluded from Git.
+
+### V11 - Independent Normalization Analysis
+
+Migration: `V11__create_normalization_analysis.sql`.
+
+Persists deterministic 1NF/2NF/3NF analysis runs and explanatory issues derived
+only from a persisted LogicalModel. Issues retain logical table/column references
+and UML traceability in metadata when available. Normalization never changes UML
+validation, ModelVersion, LogicalModel status/checksum or GenerationRun readiness;
+PASS, WARNING, FAIL and UNKNOWN are advisory results independent from V10.
+
+### V12 - Realtime collaboration activity
+
+Migration: `V12__create_collaboration_activity.sql`.
+
+Persists only important model/diagram changes confirmed after transaction commit.
+Online presence, selection and editing indicators remain ephemeral and are never
+stored in the UML or Diagram models.
+
+### Future - Generation Pipeline (number to be assigned)
 
 - asynchronous generation runs;
 - artifact metadata;
@@ -124,31 +209,29 @@ Candidate concepts for later DBML review:
 Artifact bytes and generated ZIPs are stored through `ArtifactStorage`, not as
 large binaries in PostgreSQL and not in the CASEGen Git repository.
 
-### V10 - Diagram Model
+### Future - Diagram enhancements
 
-- diagrams;
-- nodes and edges;
-- positions, dimensions, routing and presentation metadata separated from UML
-  semantics.
+- waypoints and persisted handle/routing choices;
+- additional presentation metadata beyond V7.
 
-### V11 - UML Sequence Model
+### Future - UML Sequence Model
 
 - interactions;
 - lifelines;
 - occurrence specifications;
 - synchronous call and reply messages.
 
-### V12 - Interoperability
+### Interoperability (implemented without persistence migration)
 
 - file asset metadata;
 - UML/XMI imports and exports;
 - Enterprise Architect interoperability traceability and diagnostics.
 
-### V13 - Collaboration History
+### Collaboration History
 
-- semantic change history/events;
-- collaboration metadata required for audit and synchronization;
-- version-safe references without making Yjs the authoritative database.
+- semantic and diagram activity history implemented by V12;
+- future audit/synchronization metadata remains deferred;
+- Yjs is not an authoritative database.
 
 ### V14 - Assistant and Mobile Sync
 
@@ -164,15 +247,9 @@ V2  Users + Project Collaboration             implemented
 V3  UML Model Core                            implemented
 V4  Security + Project Authorization           implemented
 V4.1 Superuser Bootstrap                       implemented
-V5  UML Features                              planned
-V6  UML Relationships                         planned
-V7  Validation + Rules + Versioning
-    + Generation Profile                      planned
-V8  Logical Relational Model                  planned
-V9  Generation Pipeline                       planned
-V10 Diagram Model                             planned
-V11 UML Sequence Model                        planned
-V12 Interoperability                          planned
-V13 Collaboration History                     planned
-V14 Assistant and Mobile Sync                 planned
+V5  UML Features                              implemented
+V6  UML Relationships                         implemented
+V7  Class Diagram persistence                 implemented
+Future increments retain the planned order documented above; their migration
+numbers must be reassigned before implementation.
 ```

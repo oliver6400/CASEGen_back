@@ -3,7 +3,7 @@
 // Version: 1.0
 //
 // IMPORTANT:
-// - V1, V2, V3, V4 and V4.1 are implemented through Flyway.
+// - V1, V2, V3, V4, V4.1, V5 and V6 are implemented through Flyway.
 // - Do not recreate or alter implemented tables from this DBML.
 // - Flyway SQL is the executable source of truth.
 // - UUID is used for persistent identifiers.
@@ -16,6 +16,7 @@
 
 Table projects {
   id uuid [pk]
+  visibility varchar(20) [not null, default: 'PRIVATE', note: 'V8.1: PRIVATE | PUBLIC. PUBLIC requires authentication and never grants editing.']
 
   Note: '''
   Existing table created by V1__create_projects_table.sql.
@@ -144,6 +145,7 @@ Table project_invitations {
   - ACCEPTED
   - EXPIRED
   - REVOKED
+  - REJECTED
   '''
 }
 
@@ -332,6 +334,74 @@ Table uml_classifiers {
 }
 
 
+//////////////////////////////////////////////////////////
+// V5 - UML FEATURES (IMPLEMENTED)
+//////////////////////////////////////////////////////////
+
+Table uml_properties {
+  element_id uuid [pk]
+  owner_classifier_id uuid
+  visibility varchar(20) [not null, default: 'PRIVATE']
+  type_kind varchar(20) [not null]
+  primitive_type varchar(30)
+  type_classifier_id uuid
+  lower_bound int [not null, default: 1]
+  upper_bound int
+  is_static boolean [not null, default: false]
+  is_read_only boolean [not null, default: false]
+  is_derived boolean [not null, default: false]
+
+  indexes {
+    owner_classifier_id [name: 'idx_uml_properties_owner']
+    type_classifier_id [name: 'idx_uml_properties_type_classifier']
+  }
+
+  Note: '''
+  type_kind is PRIMITIVE or CLASSIFIER and selects exactly one of
+  primitive_type and type_classifier_id. A null upper_bound means unlimited (*).
+  '''
+}
+
+Table uml_operations {
+  element_id uuid [pk]
+  owner_classifier_id uuid [not null]
+  visibility varchar(20) [not null, default: 'PUBLIC']
+  is_abstract boolean [not null, default: false]
+  is_static boolean [not null, default: false]
+  is_query boolean [not null, default: false]
+
+  indexes {
+    owner_classifier_id [name: 'idx_uml_operations_owner']
+  }
+
+  Note: 'Return values are represented only by RETURN parameters.'
+}
+
+Table uml_parameters {
+  element_id uuid [pk]
+  operation_id uuid [not null]
+  direction varchar(20) [not null]
+  type_kind varchar(20) [not null]
+  primitive_type varchar(30)
+  type_classifier_id uuid
+  lower_bound int [not null, default: 1]
+  upper_bound int
+  position int [not null]
+
+  indexes {
+    (operation_id, position) [unique, name: 'uq_uml_parameters_operation_position']
+    operation_id [name: 'idx_uml_parameters_operation']
+    type_classifier_id [name: 'idx_uml_parameters_type_classifier']
+    operation_id [unique, name: 'uq_uml_parameters_one_return']
+  }
+
+  Note: '''
+  direction is IN, OUT, INOUT or RETURN. The one-return index is partial:
+  WHERE direction = 'RETURN'. Type XOR and multiplicity match uml_properties.
+  '''
+}
+
+
 Ref: uml_models.project_id > projects.id
 Ref: uml_models.created_by > users.id
 
@@ -342,3 +412,403 @@ Ref: uml_packages.parent_package_id > uml_packages.element_id
 
 Ref: uml_classifiers.element_id - uml_elements.id
 Ref: uml_classifiers.package_id > uml_packages.element_id
+
+Ref: uml_properties.element_id - uml_elements.id
+Ref: uml_properties.owner_classifier_id > uml_classifiers.element_id
+Ref: uml_properties.type_classifier_id > uml_classifiers.element_id
+
+Ref: uml_operations.element_id - uml_elements.id
+Ref: uml_operations.owner_classifier_id > uml_classifiers.element_id
+
+Ref: uml_parameters.element_id - uml_elements.id
+Ref: uml_parameters.operation_id > uml_operations.element_id
+Ref: uml_parameters.type_classifier_id > uml_classifiers.element_id
+
+
+//////////////////////////////////////////////////////////
+// V6 - UML CLASS RELATIONSHIPS (IMPLEMENTED)
+//////////////////////////////////////////////////////////
+
+Table uml_associations {
+  element_id uuid [pk]
+  package_id uuid
+
+  indexes {
+    package_id [name: 'idx_uml_associations_package']
+  }
+}
+
+Table uml_association_ends {
+  property_id uuid [pk]
+  association_id uuid [not null]
+  navigable boolean [not null, default: false]
+  aggregation varchar(20) [not null, default: 'NONE']
+  ownership varchar(20) [not null, default: 'ASSOCIATION']
+  member_order smallint [not null]
+
+  indexes {
+    (association_id, member_order) [unique, name: 'uq_uml_association_ends_order']
+    association_id [name: 'idx_uml_association_ends_association']
+  }
+
+  Note: '''
+  aggregation: NONE, SHARED or COMPOSITE.
+  ownership: ASSOCIATION or CLASSIFIER.
+  member_order is constrained to 1 or 2; the Semantic Core creates exactly two ends atomically.
+  '''
+}
+
+Table uml_generalizations {
+  element_id uuid [pk]
+  specific_classifier_id uuid [not null]
+  general_classifier_id uuid [not null]
+  is_substitutable boolean [not null, default: true]
+
+  indexes {
+    (specific_classifier_id, general_classifier_id) [unique, name: 'uq_uml_generalizations_pair']
+    specific_classifier_id [name: 'idx_uml_generalizations_specific']
+    general_classifier_id [name: 'idx_uml_generalizations_general']
+  }
+}
+
+Table uml_realizations {
+  element_id uuid [pk]
+  client_classifier_id uuid [not null]
+  supplier_classifier_id uuid [not null]
+
+  indexes {
+    (client_classifier_id, supplier_classifier_id) [unique, name: 'uq_uml_realizations_pair']
+    client_classifier_id [name: 'idx_uml_realizations_client']
+    supplier_classifier_id [name: 'idx_uml_realizations_supplier']
+  }
+}
+
+Ref: uml_associations.element_id - uml_elements.id
+Ref: uml_associations.package_id > uml_packages.element_id
+Ref: uml_association_ends.property_id - uml_properties.element_id
+Ref: uml_association_ends.association_id > uml_associations.element_id
+Ref: uml_generalizations.element_id - uml_elements.id
+Ref: uml_generalizations.specific_classifier_id > uml_classifiers.element_id
+Ref: uml_generalizations.general_classifier_id > uml_classifiers.element_id
+Ref: uml_realizations.element_id - uml_elements.id
+Ref: uml_realizations.client_classifier_id > uml_classifiers.element_id
+Ref: uml_realizations.supplier_classifier_id > uml_classifiers.element_id
+
+
+//////////////////////////////////////////////////////////
+// V7 - CLASS DIAGRAM MODEL (IMPLEMENTED)
+//////////////////////////////////////////////////////////
+
+Table diagrams {
+  id uuid [pk]
+  model_id uuid [not null]
+  owner_package_id uuid
+  name varchar(180) [not null]
+  type varchar(20) [not null, note: 'MVP: CLASS']
+  revision bigint [not null, default: 0]
+  lock_version bigint [not null, default: 0]
+  created_by uuid
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+
+  indexes {
+    (model_id, name) [unique, name: 'uq_diagrams_model_name']
+    model_id [name: 'idx_diagrams_model']
+  }
+}
+
+Table diagram_nodes {
+  id uuid [pk]
+  diagram_id uuid [not null]
+  uml_element_id uuid [not null]
+  x double [not null]
+  y double [not null]
+  width double [not null]
+  height double [not null]
+  z_index int [not null, default: 0]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+
+  indexes {
+    (diagram_id, uml_element_id) [unique, name: 'uq_diagram_nodes_element']
+    diagram_id [name: 'idx_diagram_nodes_diagram']
+    uml_element_id [name: 'idx_diagram_nodes_element']
+  }
+}
+
+Table diagram_edges {
+  id uuid [pk]
+  diagram_id uuid [not null]
+  uml_element_id uuid [not null]
+  source_node_id uuid [not null]
+  target_node_id uuid [not null]
+  source_side varchar(10) [not null, default: 'RIGHT']
+  target_side varchar(10) [not null, default: 'LEFT']
+  source_anchor_index int [not null, default: 0]
+  target_anchor_index int [not null, default: 0]
+  waypoints_json jsonb [not null, default: '[]']
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+
+  indexes {
+    (diagram_id, uml_element_id) [unique, name: 'uq_diagram_edges_element']
+    diagram_id [name: 'idx_diagram_edges_diagram']
+    uml_element_id [name: 'idx_diagram_edges_element']
+  }
+
+  Note: 'V7.1 notation-only routing: sides, distributed anchor indexes and orthogonal waypoints.'
+}
+
+Ref: diagrams.model_id > uml_models.id
+Ref: diagrams.owner_package_id > uml_packages.element_id
+Ref: diagrams.created_by > users.id
+Ref: diagram_nodes.diagram_id > diagrams.id
+Ref: diagram_nodes.uml_element_id > uml_elements.id
+Ref: diagram_edges.diagram_id > diagrams.id
+Ref: diagram_edges.uml_element_id > uml_elements.id
+Ref: diagram_edges.source_node_id > diagram_nodes.id
+Ref: diagram_edges.target_node_id > diagram_nodes.id
+
+Table validation_runs {
+  id uuid [pk]
+  run_order bigint [not null, unique, note: 'V9.1: sequence-backed creation order, independent of wall clock']
+  model_id uuid [not null, ref: > uml_models.id]
+  model_revision bigint [not null]
+  generation_checksum varchar(64) [not null]
+  status varchar(20) [not null, note: 'RUNNING | VALID | INVALID']
+  created_by uuid [ref: > users.id]
+  started_at timestamptz [not null]
+  finished_at timestamptz
+}
+Table validation_issues {
+  id uuid [pk]
+  validation_run_id uuid [not null, ref: > validation_runs.id]
+  uml_element_id uuid [note: 'Historical identifier; survives semantic deletion']
+  severity varchar(20) [not null, note: 'ERROR | WARNING']
+  code varchar(100) [not null]
+  message text [not null]
+  path varchar(500)
+}
+Table model_versions {
+  id uuid [pk]
+  model_id uuid [not null, ref: > uml_models.id]
+  validation_run_id uuid [not null, ref: > validation_runs.id]
+  version_number bigint [not null]
+  created_by uuid [ref: > users.id]
+  semantic_snapshot jsonb [not null]
+  diagram_snapshot jsonb
+  checksum varchar(64) [not null]
+  created_at timestamptz [not null]
+  indexes { (model_id, version_number) [unique] }
+  Note: 'Append-only: database trigger rejects UPDATE/DELETE. SHA-256 covers canonical semantic JSON, including generation settings; layout is separate.'
+}
+Table generation_profiles {
+  id uuid [pk]
+  model_id uuid [not null, ref: > uml_models.id]
+  name varchar(180) [not null]
+  target varchar(30) [not null, note: 'SPRING_BOOT']
+  group_id varchar(180) [not null]
+  artifact_id varchar(180) [not null]
+  base_package varchar(180) [not null]
+  java_version int [not null]
+  spring_boot_version varchar(40) [not null]
+  database varchar(30) [not null, note: 'POSTGRESQL']
+  config_json jsonb [not null, default: `'{}'::jsonb`]
+  indexes { (model_id, name) [unique] }
+}
+Table generation_element_mappings {
+  id uuid [pk]
+  generation_profile_id uuid [not null, ref: > generation_profiles.id]
+  uml_element_id uuid [not null, ref: > uml_elements.id]
+  target_kind varchar(30) [not null, note: 'ENTITY | VALUE_OBJECT | SERVICE | JAVA_INTERFACE | IGNORE']
+  config_json jsonb [not null, default: `'{}'::jsonb`]
+  indexes { (generation_profile_id, uml_element_id) [unique] }
+}
+
+Table logical_models {
+  id uuid [pk]
+  model_version_id uuid [not null, ref: > model_versions.id]
+  generation_profile_id uuid [not null, ref: > generation_profiles.id]
+  profile_snapshot jsonb [not null]
+  status varchar(20) [not null, note: 'VALID | INVALID']
+  checksum varchar(64) [not null]
+  issues_json jsonb [not null, default: `'[]'::jsonb`]
+  created_by uuid [ref: > users.id]
+  created_at timestamptz [not null]
+}
+Table logical_tables {
+  id uuid [pk]
+  logical_model_id uuid [not null, ref: > logical_models.id]
+  source_classifier_id uuid [note: 'Traceability into immutable snapshot; no live UML FK']
+  source_association_id uuid
+  name varchar(63) [not null]
+  indexes { (logical_model_id, name) [unique] }
+}
+Table logical_columns {
+  id uuid [pk]
+  table_id uuid [not null, ref: > logical_tables.id]
+  source_property_id uuid
+  name varchar(63) [not null]
+  sql_type varchar(100) [not null]
+  nullable boolean [not null]
+  ordinal_position int [not null]
+  indexes {
+    (table_id, name) [unique]
+    (table_id, ordinal_position) [unique]
+    (table_id, id) [unique]
+  }
+}
+Table logical_primary_keys {
+  id uuid [pk]
+  table_id uuid [not null, unique, ref: > logical_tables.id]
+  name varchar(63) [not null]
+  source_element_id uuid
+  indexes { (table_id, id) [unique] }
+}
+Table logical_primary_key_columns {
+  primary_key_id uuid [not null]
+  table_id uuid [not null]
+  column_id uuid [not null]
+  position int [not null]
+  indexes {
+    (primary_key_id, position) [pk]
+    (primary_key_id, column_id) [unique]
+  }
+}
+Ref: logical_primary_key_columns.(table_id, primary_key_id) > logical_primary_keys.(table_id, id)
+Ref: logical_primary_key_columns.(table_id, column_id) > logical_columns.(table_id, id)
+Table logical_foreign_keys {
+  id uuid [pk]
+  table_id uuid [not null, ref: > logical_tables.id]
+  referenced_table_id uuid [not null, ref: > logical_tables.id]
+  name varchar(63) [not null]
+  on_delete varchar(20) [not null, note: 'NO ACTION | CASCADE']
+  source_element_id uuid
+  indexes {
+    (table_id, name) [unique]
+    (table_id, referenced_table_id, id) [unique]
+  }
+}
+Table logical_foreign_key_columns {
+  foreign_key_id uuid [not null]
+  table_id uuid [not null]
+  referenced_table_id uuid [not null]
+  column_id uuid [not null]
+  referenced_column_id uuid [not null]
+  position int [not null]
+  indexes {
+    (foreign_key_id, position) [pk]
+    (foreign_key_id, column_id) [unique]
+  }
+}
+Ref: logical_foreign_key_columns.(table_id, referenced_table_id, foreign_key_id) > logical_foreign_keys.(table_id, referenced_table_id, id)
+Ref: logical_foreign_key_columns.(table_id, column_id) > logical_columns.(table_id, id)
+Ref: logical_foreign_key_columns.(referenced_table_id, referenced_column_id) > logical_columns.(table_id, id)
+Table logical_unique_constraints {
+  id uuid [pk]
+  table_id uuid [not null, ref: > logical_tables.id]
+  name varchar(63) [not null]
+  source_element_id uuid
+  indexes {
+    (table_id, name) [unique]
+    (table_id, id) [unique]
+  }
+}
+Table logical_unique_constraint_columns {
+  unique_constraint_id uuid [not null]
+  table_id uuid [not null]
+  column_id uuid [not null]
+  position int [not null]
+  indexes {
+    (unique_constraint_id, position) [pk]
+    (unique_constraint_id, column_id) [unique]
+  }
+}
+Ref: logical_unique_constraint_columns.(table_id, unique_constraint_id) > logical_unique_constraints.(table_id, id)
+Ref: logical_unique_constraint_columns.(table_id, column_id) > logical_columns.(table_id, id)
+Table logical_indexes {
+  id uuid [pk]
+  table_id uuid [not null, ref: > logical_tables.id]
+  name varchar(63) [not null]
+  is_unique boolean [not null, default: false]
+  source_element_id uuid
+  indexes {
+    (table_id, name) [unique]
+    (table_id, id) [unique]
+  }
+}
+Table logical_index_columns {
+  index_id uuid [not null]
+  table_id uuid [not null]
+  column_id uuid [not null]
+  position int [not null]
+  indexes {
+    (index_id, position) [pk]
+    (index_id, column_id) [unique]
+  }
+}
+Ref: logical_index_columns.(table_id, index_id) > logical_indexes.(table_id, id)
+Ref: logical_index_columns.(table_id, column_id) > logical_columns.(table_id, id)
+Table logical_check_constraints {
+  id uuid [pk]
+  table_id uuid [not null, ref: > logical_tables.id]
+  name varchar(63) [not null]
+  expression text [not null]
+  source_element_id uuid
+  indexes { (table_id, name) [unique] }
+}
+
+Table generation_runs {
+  id uuid [pk]
+  logical_model_id uuid [not null, ref: > logical_models.id]
+  model_version_id uuid [not null, ref: > model_versions.id]
+  generation_profile_id uuid [not null, ref: > generation_profiles.id]
+  requested_by uuid [not null, ref: > users.id]
+  generator_version varchar(40) [not null]
+  status varchar(30) [not null, note: 'QUEUED | GENERATING | COMPILING | TESTING | VERIFYING_DATABASE | PACKAGING | SUCCESS | FAILED']
+  current_stage varchar(60)
+  error_message text
+  started_at timestamptz
+  finished_at timestamptz
+  created_at timestamptz [not null]
+}
+Table generation_artifacts {
+  id uuid [pk]
+  generation_run_id uuid [not null, ref: > generation_runs.id]
+  artifact_type varchar(40) [not null]
+  storage_key varchar(500) [not null, unique]
+  file_name varchar(255) [not null]
+  checksum varchar(64) [not null]
+  size_bytes bigint [not null]
+  created_at timestamptz [not null]
+}
+Table generation_test_runs {
+  id uuid [pk]
+  generation_run_id uuid [not null, ref: > generation_runs.id]
+  test_type varchar(40) [not null]
+  status varchar(20) [not null]
+  output_log text
+  started_at timestamptz [not null]
+  finished_at timestamptz
+}
+
+Table normalization_runs {
+  id uuid [pk]
+  logical_model_id uuid [not null, ref: > logical_models.id]
+  status varchar(20) [not null, note: 'PASS | WARNING | FAIL | UNKNOWN']
+  highest_normal_form varchar(10) [note: '1NF | 2NF | 3NF; null when 1NF cannot be established']
+  created_by uuid [ref: > users.id]
+  created_at timestamptz [not null]
+}
+Table normalization_issues {
+  id uuid [pk]
+  normalization_run_id uuid [not null, ref: > normalization_runs.id]
+  logical_table_id uuid [ref: > logical_tables.id]
+  logical_column_id uuid [ref: > logical_columns.id]
+  normal_form varchar(10) [not null, note: '1NF | 2NF | 3NF']
+  severity varchar(20) [not null, note: 'WARNING | ERROR']
+  code varchar(100) [not null]
+  message text [not null]
+  recommendation text [not null]
+  metadata_json jsonb [not null, default: `'{}'::jsonb`]
+}

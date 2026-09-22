@@ -8,6 +8,7 @@ import com.casegen.project.domain.ProjectMemberRole;
 import com.casegen.project.domain.ProjectMemberStatus;
 import com.casegen.project.dto.CreateProjectRequest;
 import com.casegen.project.dto.ProjectResponse;
+import com.casegen.project.dto.ProjectAccessResponse;
 import com.casegen.project.dto.UpdateProjectRequest;
 import com.casegen.project.repository.ProjectRepository;
 import com.casegen.project.repository.ProjectMemberRepository;
@@ -48,10 +49,7 @@ public class ProjectService {
         User user = authorizationService.currentUser();
         List<Project> projects = user.getSystemRole() == SystemRole.SUPERUSER
                 ? projectRepository.findAll()
-                : projectMemberRepository.findByUserIdAndStatusOrderByProjectNameAsc(
-                        user.getId(), ProjectMemberStatus.ACTIVE).stream()
-                        .map(ProjectMember::getProject)
-                        .toList();
+                : projectRepository.findVisibleTo(user.getId());
         return projects.stream()
                 .map(this::toResponse)
                 .toList();
@@ -61,6 +59,18 @@ public class ProjectService {
     public ProjectResponse findById(UUID id) {
         authorizationService.requireRead(id);
         return toResponse(findProject(id));
+    }
+
+    @Transactional(readOnly = true)
+    public ProjectAccessResponse getAccess(UUID id) {
+        ProjectAccessDecision access = authorizationService.getAccess(id);
+        return new ProjectAccessResponse(
+                access.systemRole(),
+                access.projectRole(),
+                access.canView(),
+                access.canEdit(),
+                access.canManageMembers(),
+                access.canGenerate());
     }
 
     @Transactional
@@ -82,7 +92,7 @@ public class ProjectService {
                 project.getName(),
                 project.getDescription(),
                 project.getCreatedAt(),
-                project.getUpdatedAt()
+                project.getUpdatedAt(), project.getVisibility()
         );
     }
 }

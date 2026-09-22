@@ -13,4 +13,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByEmailIgnoreCase(String email);
 
     long countBySystemRole(SystemRole systemRole);
+
+    Optional<User> findFirstBySystemRole(SystemRole systemRole);
 }
