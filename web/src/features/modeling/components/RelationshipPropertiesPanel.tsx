@@ -128,7 +128,6 @@ export function AssociationProperties({
         register={form.register}
       />
     </fieldset>
-    <PropertyValue label="UUID" value={association.id} mono />
     {Object.values(form.formState.errors).length > 0 &&
       <p className="form-error">Revisa las multiplicidades y los campos indicados.</p>}
     {(save.error || remove.error) && <p className="form-error">{getApiErrorMessage(save.error || remove.error)}</p>}
@@ -172,7 +171,6 @@ export function DirectedRelationshipProperties({
     <h3 className="font-bold text-slate-800">{isGeneralization ? 'Generalización' : 'Realización'}</h3>
     <PropertyValue label={isGeneralization ? 'Specific (origen)' : 'Client (origen)'} value={classifierName(sourceId, classifiers)} />
     <PropertyValue label={isGeneralization ? 'General (destino)' : 'Supplier Interface (destino)'} value={classifierName(targetId, classifiers)} />
-    <PropertyValue label="UUID" value={relation.id} mono />
     {remove.error && <p className="form-error">{getApiErrorMessage(remove.error)}</p>}
     {canEdit && <button className="danger-button" disabled={remove.isPending} onClick={() => {
       if (window.confirm('¿Eliminar esta relación?')) remove.mutate()

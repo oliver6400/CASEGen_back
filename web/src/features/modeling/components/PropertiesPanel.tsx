@@ -107,7 +107,6 @@ function ElementSummary({ selected }: { selected: SelectedElement }) {
     {'documentation' in selected && <PropertyValue label="Documentación" value={selected.documentation || 'Sin documentación'} />}
     {'properties' in selected && <PropertyValue label="Atributos" value={String(selected.properties.length)} />}
     {'operations' in selected && <PropertyValue label="Operaciones" value={String(selected.operations.length)} />}
-    <PropertyValue label="UUID" value={selected.id} mono />
   </dl>
 }
 

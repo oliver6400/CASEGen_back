@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Database } from 'lucide-react'
 import { getApiErrorMessage } from '../../../api/apiError'
 import { logicalModelApi, type ElementMapping, type GenerationProfile, type LogicalPreview, type VersionSnapshot } from '../api/logicalModelApi'
 import { associationDecisions, identifiersFor, mappingDrafts, namesFor, object, profileDefaults } from '../lib/logicalPreparation'
+import { WorkspaceDrawer } from './WorkspaceDrawer'
+import { OPEN_PREPARATION_PANEL_EVENT, type PreparationPanel } from './logicalPreparationPanels'
 
 export function LogicalPreparation({ modelId, profile, version, mappings, preview, previewBusy, previewError, building, onSaved, onBuild }: {
   modelId: string; profile?: GenerationProfile; version: VersionSnapshot; mappings: ElementMapping[]; preview?: LogicalPreview
@@ -15,6 +17,12 @@ export function LogicalPreparation({ modelId, profile, version, mappings, previe
   const [owners, setOwners] = useState<Record<string, string>>({})
   const [endOrders, setEndOrders] = useState<Record<string, number>>({})
   const [strategy, setStrategy] = useState(String(fields.configJson.inheritanceStrategy ?? 'JOINED'))
+  const [openPanel, setOpenPanel] = useState<PreparationPanel | null>(null)
+  useEffect(() => {
+    const openRequestedPanel = (event: Event) => setOpenPanel((event as CustomEvent<PreparationPanel>).detail)
+    window.addEventListener(OPEN_PREPARATION_PANEL_EVENT, openRequestedPanel)
+    return () => window.removeEventListener(OPEN_PREPARATION_PANEL_EVENT, openRequestedPanel)
+  }, [])
   const names = namesFor(version)
   let advancedError = ''
   let configJson: Record<string, unknown> = {}
@@ -73,8 +81,14 @@ export function LogicalPreparation({ modelId, profile, version, mappings, previe
   const ready = !dirty && !missing.length && !!preview && !backendErrors.length && !previewBusy && !previewError
   const busy = building || save.isPending
   const update = (id: string, patch: Partial<typeof drafts[number]>) => setDrafts((current) => current.map((d) => d.classifierId === id ? { ...d, ...patch } : d))
+  const savePreparationButton = () => <button className="toolbar-button mt-4 w-full justify-center" disabled={busy || !!missing.length || !dirty} onClick={() => save.mutate()} type="button">{save.isPending ? 'Guardando…' : 'Guardar preparación'}</button>
   return <div className="mt-3 grid gap-3">
-    <fieldset disabled={busy} className="grid gap-2"><legend className="mb-2 font-semibold">Perfil de generación</legend>
+    <section><h4 className="mb-1 font-semibold text-slate-600">Configuración de generación</h4><button className="toolbar-button w-full justify-center" onClick={() => setOpenPanel('PROFILE')} type="button">Perfil de generación</button></section>
+    <section><h4 className="mb-1 font-semibold text-slate-600">Mapeo</h4><button className="toolbar-button w-full justify-center" onClick={() => setOpenPanel('MAPPINGS')} type="button">Mapeo de classifiers</button></section>
+    <section><h4 className="mb-1 font-semibold text-slate-600">Relaciones</h4><button className="toolbar-button w-full justify-center" onClick={() => setOpenPanel('RELATIONSHIPS')} type="button">Decisiones automáticas</button></section>
+    <section><h4 className="mb-1 font-semibold text-slate-600">Resultado</h4><button className="toolbar-button w-full justify-center" onClick={() => setOpenPanel('SUMMARY')} type="button">Resumen previo</button></section>
+
+    <WorkspaceDrawer open={openPanel === 'PROFILE'} title="Perfil de generación" onClose={() => setOpenPanel(null)}><fieldset disabled={busy} className="grid gap-3">
       <label className="editor-label">Nombre<input className="editor-input" maxLength={180} value={fields.name} onChange={(e) => setFields({ ...fields, name: e.target.value })} /></label>
       <label className="editor-label">Target<select className="editor-input" value="SPRING_BOOT" disabled><option>SPRING_BOOT</option></select></label>
       <label className="editor-label">Database<select className="editor-input" value="POSTGRESQL" disabled><option>POSTGRESQL</option></select></label>
@@ -82,8 +96,9 @@ export function LogicalPreparation({ modelId, profile, version, mappings, previe
       <label className="editor-label">Spring Boot version<input className="editor-input" maxLength={40} value={fields.springBootVersion} onChange={(e) => setFields({ ...fields, springBootVersion: e.target.value })} /></label>
       {(['groupId', 'artifactId', 'basePackage'] as const).map((field) => <label className="editor-label" key={field}>{field}<input className="editor-input" maxLength={180} value={fields[field]} onChange={(e) => setFields({ ...fields, [field]: e.target.value })} /></label>)}
       <label className="editor-label">Inheritance strategy<select className="editor-input" value={strategy} onChange={(e) => setStrategy(e.target.value)}><option>JOINED</option>{strategy !== 'JOINED' && <option>{strategy} (no soportada)</option>}</select></label>
-    </fieldset>
-    <fieldset disabled={busy} className="grid gap-2"><legend className="mb-2 font-semibold">Classifiers de la versión · mappings</legend>
+    </fieldset>{savePreparationButton()}</WorkspaceDrawer>
+
+    <WorkspaceDrawer open={openPanel === 'MAPPINGS'} title="Mapeo de classifiers" onClose={() => setOpenPanel(null)}><fieldset disabled={busy} className="grid gap-3">
       {drafts.map((draft) => {
         const kind = version.semanticSnapshot.classifiers.find((c) => c.element_id === draft.classifierId)?.kind
         const candidates = identifiersFor(version, draft.classifierId)
@@ -98,8 +113,9 @@ export function LogicalPreparation({ modelId, profile, version, mappings, previe
           </select>{!candidates.length && <span className="text-amber-700">La versión no contiene un identificador escalar válido. Añádelo al UML y crea una nueva versión.</span>}</label>}
         </div>
       })}
-    </fieldset>
-    <fieldset disabled={busy} className="grid gap-2"><legend className="mb-2 font-semibold">Relaciones · decisiones automáticas</legend>
+    </fieldset>{savePreparationButton()}</WorkspaceDrawer>
+
+    <WorkspaceDrawer open={openPanel === 'RELATIONSHIPS'} title="Decisiones automáticas" onClose={() => setOpenPanel(null)}><fieldset disabled={busy} className="grid gap-3">
       {decisions.map((decision) => <div className="rounded border border-slate-200 p-2" key={decision.id}>
         <strong>{decision.title}</strong><p className="mt-1 text-slate-600">{decision.description}</p>
         {decision.ambiguous && <label className="editor-label mt-2">Propietario de FK<select className="editor-input" value={String(object(associations[decision.id]).fkOwnerClassifierId ?? '')} onChange={(e) => setOwners({ ...owners, [decision.id]: e.target.value })}>
@@ -108,7 +124,7 @@ export function LogicalPreparation({ modelId, profile, version, mappings, previe
         {decision.ambiguous && decision.self && <label className="editor-label mt-2">Extremo referenciado<select className="editor-input" value={Number(object(associations[decision.id]).referencedEndOrder ?? 0)} onChange={(e) => setEndOrders({ ...endOrders, [decision.id]: Number(e.target.value) })}><option value={0}>Selecciona extremo</option><option value={1}>Extremo A</option><option value={2}>Extremo B</option></select></label>}
       </div>)}
     </fieldset>
-    <details><summary className="cursor-pointer text-indigo-700">Configuración avanzada</summary>
+    <details className="mt-4"><summary className="cursor-pointer text-indigo-700">Configuración avanzada</summary>
       <p className="mt-2 text-slate-500">Overrides opcionales. La preparación normal no requiere JSON ni UUID.</p>
       <textarea className="editor-input mt-2 min-h-32 font-mono" aria-label="Configuración avanzada JSON" disabled={busy} value={advanced} onChange={(e) => setAdvanced(e.target.value)} />
       {decisions.map((d) => <div key={d.id} className="mt-2 grid gap-2"><strong>{d.title}</strong>{(['fkColumnName', 'joinTableName'] as const).map((field) => <label className="editor-label" key={field}>{field}<input className="editor-input" disabled={busy || !!advancedError} value={String(object(associations[d.id])[field] ?? '')} onChange={(e) => {
@@ -116,17 +132,17 @@ export function LogicalPreparation({ modelId, profile, version, mappings, previe
         setAdvanced(JSON.stringify({ ...configJson, associations: { ...associations, [d.id]: entry } }, null, 2))
       }} /></label>)}</div>)}
       {drafts.filter((d) => d.target === 'ENTITY').map((d) => <label className="editor-label mt-2" key={d.classifierId}>Tabla de {names.get(d.classifierId)}<input className="editor-input" disabled={busy} value={d.tableName} onChange={(e) => update(d.classifierId, { tableName: e.target.value })} /></label>)}
-    </details>
-    <div className="rounded border border-slate-200 bg-slate-50 p-2"><h4 className="font-semibold">Resumen previo</h4>
+    </details>{savePreparationButton()}</WorkspaceDrawer>
+
+    <WorkspaceDrawer open={openPanel === 'SUMMARY'} title="Resumen previo" onClose={() => setOpenPanel(null)}><div className="rounded border border-slate-200 bg-slate-50 p-3">
       {drafts.map((d) => <p className="mt-1" key={d.classifierId}>{names.get(d.classifierId)} → {d.target}{d.target === 'ENTITY' ? `, PK=${names.get(d.idPropertyId) ?? 'pendiente'}` : ''}</p>)}
       {decisions.map((d) => <p className="mt-1" key={d.id}>{d.title} → {d.description}</p>)}
-    </div>
+    </div></WorkspaceDrawer>
     {missing.map((message, i) => <p className="text-amber-700" key={i}>{message}</p>)}
     {!missing.length && dirty && <p className="text-amber-700">Guarda la preparación sugerida para comprobarla con V9.</p>}
-    {backendErrors.map((issue, i) => <p className="form-error" key={i}>{names.get(issue.sourceElementId ?? '') || 'Modelo'} · {issue.code}: {issue.message}</p>)}
+    {backendErrors.map((issue, i) => <p className="form-error" key={i}>{names.get(issue.sourceElementId ?? '') || 'Modelo'}: {issue.message}</p>)}
     {!dirty && previewBusy && <p className="text-slate-500">Comprobando decisiones con el transformador V9…</p>}
     {ready && <p className="text-emerald-700">✓ Preparación completa. Listo para construir modelo lógico.</p>}
-    <button className="toolbar-button" disabled={busy || !!missing.length || !dirty} onClick={() => save.mutate()} type="button">{save.isPending ? 'Guardando…' : 'Guardar preparación'}</button>
     <button className="toolbar-button" disabled={busy || !ready} onClick={onBuild} type="button"><Database size={14} />{building ? 'Construyendo…' : 'Construir modelo lógico'}</button>
     {[save.error, !dirty ? previewError : null].filter(Boolean).map((error, i) => <p className="form-error" key={i}>{getApiErrorMessage(error)}</p>)}
   </div>

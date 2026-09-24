@@ -4,14 +4,22 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "casegen.security.cors")
-public record CorsProperties(List<String> allowedOrigins) {
+public record CorsProperties(
+        List<String> allowedOrigins,
+        List<String> allowedOriginPatterns
+) {
 
     public CorsProperties {
-        allowedOrigins = allowedOrigins == null
+        allowedOrigins = normalize(allowedOrigins);
+        allowedOriginPatterns = normalize(allowedOriginPatterns);
+    }
+
+    private static List<String> normalize(List<String> values) {
+        return values == null
                 ? List.of()
-                : allowedOrigins.stream()
-                        .map(String::trim)
-                        .filter(origin -> !origin.isEmpty())
-                        .toList();
+                : values.stream()
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .toList();
     }
 }

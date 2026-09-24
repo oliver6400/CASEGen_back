@@ -4,6 +4,7 @@ import { CheckCircle2, Layers } from 'lucide-react'
 import { httpClient } from '../../../api/httpClient'
 import { getApiErrorMessage } from '../../../api/apiError'
 import { LogicalModelPanel } from './LogicalModelPanel'
+import { openLogicalPreparationPanel } from './logicalPreparationPanels'
 
 interface ValidationIssue {
   id: string
@@ -67,14 +68,13 @@ export function ModelValidationPanel({ modelId, revision, canEdit, onLocate }: {
         {umlValid ? <p className="mt-1 text-emerald-700">✓ Modelo UML válido</p> : <p className="mt-1 text-amber-700">{current ? '⚠ Modelo UML con errores' : '⚠ Requiere validar la revisión actual'}</p>}
         {capturedVersion ? <p className="text-slate-600">La revisión r{revision} ya está versionada como v{capturedVersion.versionNumber}.</p> : versionAllowed ? <p className="text-emerald-700">✓ Listo para crear versión</p> : current && umlValid && <p className="text-amber-700">Corrige los errores del perfil antes de crear versión.</p>}
       </div>
-      <div className="border-t border-slate-200 pt-2"><h4 className="font-bold text-slate-600">Estado para generar</h4>
-        {!current ? <p className="mt-1 text-slate-500">Configuración pendiente de validación actual.</p> : missingProfile ? <p className="mt-1 text-amber-700">⚠ Perfil de generación no configurado</p> : missingMappings ? <p className="mt-1 text-amber-700">⚠ Mappings de generación no configurados</p> : generationErrors ? <p className="mt-1 text-amber-700">⚠ Configuración de generación con errores</p> : <p className="mt-1 text-slate-600">Perfil configurado. {versionAllowed ? 'Configuración validada.' : 'Modelo pendiente de corrección.'}</p>}
-        <p className="mt-1 text-slate-500">Backend todavía no puede generarse. La generación de código aún no está implementada.</p>
+      <div className="border-t border-slate-200 pt-2"><h4 className="font-bold text-slate-600">Estado de generación</h4>
+        {!current ? <p className="mt-1 text-amber-700">⚠ Debe validar la revisión actual antes de generar.</p> : missingProfile ? <><p className="mt-1 text-amber-700">⚠ Falta configurar el perfil de generación.</p><button className="toolbar-button mt-2" onClick={() => openLogicalPreparationPanel('PROFILE')} type="button">Configurar perfil</button></> : missingMappings ? <><p className="mt-1 text-amber-700">⚠ Falta configurar el mapeo de classifiers.</p><button className="toolbar-button mt-2" onClick={() => openLogicalPreparationPanel('MAPPINGS')} type="button">Configurar mapeo</button></> : generationErrors ? <p className="mt-1 text-amber-700">⚠ La configuración de generación requiere revisión.</p> : umlValid ? <p className="mt-1 text-emerald-700">✓ Listo para generar backend.</p> : <p className="mt-1 text-amber-700">⚠ Corrija el modelo antes de generar.</p>}
       </div>
     </div>
     <div className="grid max-h-60 gap-2 overflow-y-auto">
       {run?.issues.map((issue) => <div className={`rounded border p-2 ${issue.severity === 'ERROR' ? 'border-rose-200 bg-rose-50' : 'border-amber-200 bg-amber-50'}`} key={issue.id}>
-        <strong className="block break-words">{issue.severity} · {issue.code}</strong>
+        <strong className="block break-words">{issue.severity === 'ERROR' ? 'Error' : 'Advertencia'}</strong>
         <p className="mt-1 break-words">{issue.message}</p>
         {issue.umlElementId && <button className="mt-1 text-indigo-600 underline" onClick={() => onLocate(issue.umlElementId!)} type="button">Localizar elemento</button>}
       </div>)}
