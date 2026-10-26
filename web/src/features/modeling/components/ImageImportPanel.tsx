@@ -22,10 +22,11 @@ export function ImageImportPanel({ projectId }: { projectId: string }) {
     staleTime: 60_000,
   })
   useEffect(() => {
-    if (!file) { setPreviewUrl(''); return }
-    const url = URL.createObjectURL(file)
-    setPreviewUrl(url)
-    return () => URL.revokeObjectURL(url)
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setPreviewUrl(typeof reader.result === 'string' ? reader.result : '')
+    reader.readAsDataURL(file)
+    return () => reader.abort()
   }, [file])
 
   const analyze = useMutation({
@@ -207,7 +208,7 @@ function EndEditor({ label, end, onChange }: { label: string; end: DetectedClass
   return <div className="rounded-lg bg-slate-50 p-2"><strong>{label}</strong><div className="mt-2 grid grid-cols-2 gap-2">
     <input className="rounded border px-2 py-1" placeholder="roleName" value={end.roleName} onChange={(event) => onChange({ ...end, roleName: event.target.value })} />
     <select className="rounded border px-2" value={end.visibility} onChange={(event) => onChange({ ...end, visibility: event.target.value })}>{visibilityOptions.map((value) => <option key={value}>{value}</option>)}</select>
-    <MultiplicityInput value={end} onChange={(multiplicity) => onChange({ ...end, ...multiplicity })} />
+    <MultiplicityInput key={`${end.multiplicityKnown}:${end.lowerBound}:${end.upperBound}:${end.upperUnlimited}`} value={end} onChange={(multiplicity) => onChange({ ...end, ...multiplicity })} />
     <label className="flex items-center gap-2"><input type="checkbox" checked={end.navigable} onChange={(event) => onChange({ ...end, navigable: event.target.checked })} /> Navegable</label>
   </div></div>
 }
@@ -215,7 +216,6 @@ function EndEditor({ label, end, onChange }: { label: string; end: DetectedClass
 function MultiplicityInput({ value, onChange }: { value: { lowerBound: number | null; upperBound: number | null; upperUnlimited: boolean; multiplicityKnown: boolean }; onChange: (value: ReturnType<typeof parseMultiplicity>) => void }) {
   const multiplicity = !value.multiplicityKnown ? '?' : value.lowerBound === value.upperBound && !value.upperUnlimited ? `${value.lowerBound}` : `${value.lowerBound ?? '?'}..${value.upperUnlimited ? '*' : value.upperBound ?? '?'}`
   const [draft, setDraft] = useState(multiplicity)
-  useEffect(() => setDraft(multiplicity), [multiplicity])
   const commit = () => onChange(parseMultiplicity(draft))
   return <input className="rounded border px-2 py-1" aria-label="Multiplicidad" value={draft}
     onChange={(event) => setDraft(event.target.value)} onBlur={commit}

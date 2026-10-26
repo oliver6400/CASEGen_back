@@ -25,7 +25,8 @@ public class GenerationRunRepository {
     public void fail(UUID id,String stage,String error) { jdbc.update("UPDATE generation_runs SET status='FAILED',current_stage=?,error_message=?,started_at=COALESCE(started_at,clock_timestamp()),finished_at=clock_timestamp() WHERE id=?",stage,error,id); }
     public UUID startTest(UUID run,String type) { UUID id=UUID.randomUUID();jdbc.update("INSERT INTO generation_test_runs(id,generation_run_id,test_type,status) VALUES(?,?,?,'RUNNING')",id,run,type);return id; }
     public void finishTest(UUID id,boolean ok,String output) { jdbc.update("UPDATE generation_test_runs SET status=?,output_log=?,finished_at=clock_timestamp() WHERE id=?",ok?"SUCCESS":"FAILED",bounded(output,100_000),id); }
-    public void artifact(UUID id,UUID run,String key,String file,String checksum,long size) { jdbc.update("INSERT INTO generation_artifacts(id,generation_run_id,artifact_type,storage_key,file_name,checksum,size_bytes) VALUES(?,?,'BACKEND_ZIP',?,?,?,?)",id,run,key,file,checksum,size); }
+    public void artifact(UUID id,UUID run,String key,String file,String checksum,long size) { artifact(id,run,"BACKEND_ZIP",key,file,checksum,size); }
+    public void artifact(UUID id,UUID run,String artifactType,String key,String file,String checksum,long size) { jdbc.update("INSERT INTO generation_artifacts(id,generation_run_id,artifact_type,storage_key,file_name,checksum,size_bytes) VALUES(?,?,?,?,?,?,?)",id,run,artifactType,key,file,checksum,size); }
     public Optional<UUID> project(UUID run) { return jdbc.query("SELECT m.project_id FROM generation_runs r JOIN model_versions v ON v.id=r.model_version_id JOIN uml_models m ON m.id=v.model_id WHERE r.id=?",(x,i)->x.getObject(1,UUID.class),run).stream().findFirst(); }
     public Optional<StoredArtifact> storedArtifact(UUID runId,UUID artifactId) { return jdbc.query("""
         SELECT r.id,a.id,m.project_id,r.status,a.storage_key,a.file_name,a.checksum,a.size_bytes
