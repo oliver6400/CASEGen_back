@@ -56,6 +56,16 @@ public class ProjectAuthorizationService {
         return require(access.canGenerate());
     }
 
+    public User requireActiveMemberOrSuperuser(UUID projectId) {
+        User user = currentUser();
+        if (user.getSystemRole() == SystemRole.SUPERUSER) return user;
+        boolean activeMember = projectMemberRepository
+                .findByProjectIdAndUserIdAndStatus(projectId, user.getId(), ProjectMemberStatus.ACTIVE)
+                .isPresent();
+        if (!activeMember) throw denied();
+        return user;
+    }
+
     public ProjectAccessDecision getAccess(UUID projectId) {
         User user = currentUser();
         if (user.getSystemRole() == SystemRole.SUPERUSER) {

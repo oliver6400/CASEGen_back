@@ -401,7 +401,8 @@ public class EnterpriseArchitectXmiReader implements XmiReader {
         private TypedValue primitive(String name) {
             String normalized = name.contains("::") ? name.substring(name.lastIndexOf("::") + 2) : name;
             String primitive = switch (normalized.toLowerCase(Locale.ROOT)) {
-                case "string" -> "STRING"; case "integer", "int" -> "INTEGER";
+                case "string", "char" -> "STRING";
+                case "integer", "int", "byte", "short", "long" -> "INTEGER";
                 case "boolean", "bool" -> "BOOLEAN"; case "real", "double", "float" -> "REAL";
                 case "unlimitednatural", "unlimited_natural" -> "UNLIMITED_NATURAL";
                 default -> throw invalid("XMI_PRIMITIVE_UNSUPPORTED", "Unsupported primitive type: " + name);

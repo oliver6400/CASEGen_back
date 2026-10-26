@@ -1,7 +1,11 @@
 package com.casegen.project.service;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.casegen.auth.domain.User;
@@ -88,6 +92,33 @@ class ProjectAuthorizationServiceTest {
 
         org.junit.jupiter.api.Assertions.assertFalse(
                 authorizationService.canWriteAs(project.getId(), user.getId()));
+    }
+
+    @Test
+    void activeViewerCanAccessInternalCollaboration() {
+        when(user.getSystemRole()).thenReturn(com.casegen.auth.domain.SystemRole.USER);
+        membership(ProjectMemberRole.VIEWER);
+
+        assertSame(user, authorizationService.requireActiveMemberOrSuperuser(project.getId()));
+    }
+
+    @Test
+    void superuserCanAccessInternalCollaborationWithoutMembership() {
+        when(user.getSystemRole()).thenReturn(com.casegen.auth.domain.SystemRole.SUPERUSER);
+
+        assertSame(user, authorizationService.requireActiveMemberOrSuperuser(project.getId()));
+        verify(memberRepository, never()).findByProjectIdAndUserIdAndStatus(any(), any(), any());
+    }
+
+    @Test
+    void publicProjectOutsiderCannotAccessInternalCollaboration() {
+        when(user.getSystemRole()).thenReturn(com.casegen.auth.domain.SystemRole.USER);
+        when(project.getVisibility()).thenReturn(com.casegen.project.domain.ProjectVisibility.PUBLIC);
+        when(memberRepository.findByProjectIdAndUserIdAndStatus(
+                project.getId(), user.getId(), ProjectMemberStatus.ACTIVE)).thenReturn(Optional.empty());
+
+        assertThrows(AccessDeniedException.class,
+                () -> authorizationService.requireActiveMemberOrSuperuser(project.getId()));
     }
 
     private void membership(ProjectMemberRole role) {

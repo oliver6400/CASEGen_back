@@ -9,6 +9,9 @@ import { AppShell } from '../../../components/layout/AppShell'
 import { FormField } from '../../../components/ui/FormField'
 import { PageState } from '../../../components/ui/PageState'
 import { useProjectPermission } from '../../auth/hooks/useProjectPermission'
+import { useCurrentUser } from '../../auth/hooks/useCurrentUser'
+import { AiSessionPanel } from '../../ai-sessions/components/AiSessionPanel'
+import { canAccessAiSessions } from '../../ai-sessions/aiSessionUi'
 import { modelApi } from '../../modeling/api/modelApi'
 import { ModelImportPanel } from '../../modeling/components/ModelImportPanel'
 import { projectApi } from '../api/projectApi'
@@ -21,6 +24,7 @@ export function ProjectPage() {
   const { projectId = '' } = useParams()
   const queryClient = useQueryClient()
   const permission = useProjectPermission(projectId)
+  const currentUser = useCurrentUser()
   const project = useQuery({ queryKey: ['projects', projectId], queryFn: () => projectApi.get(projectId), enabled: Boolean(projectId) })
   const models = useQuery({ queryKey: ['projects', projectId, 'models'], queryFn: () => modelApi.list(projectId), enabled: Boolean(projectId) })
   const form = useForm<ModelValues>({ resolver: zodResolver(schema) })
@@ -45,6 +49,7 @@ export function ProjectPage() {
         </div>
 
         {permission.data?.canView && <ProjectSharingPanel project={project.data} canManage={permission.data.canManageMembers} />}
+        {canAccessAiSessions(permission.data) && <AiSessionPanel projectId={projectId} userId={currentUser.data?.id} access={permission.data!} />}
         {permission.data?.canEdit && (
           <><section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2 font-semibold"><Plus size={18} className="text-indigo-600" /> Nuevo modelo UML</div>

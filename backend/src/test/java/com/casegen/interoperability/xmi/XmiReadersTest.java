@@ -74,6 +74,27 @@ class XmiReadersTest {
     }
 
     @Test
+    void normalizesEnterpriseArchitectJavaPrimitiveReferences() {
+        String xml = """
+                <?xml version="1.0"?>
+                <xmi:XMI xmlns:xmi="http://www.omg.org/spec/XMI/20131001"
+                         xmlns:uml="http://www.omg.org/spec/UML/20131001" xmi:version="2.5.1">
+                  <uml:Model xmi:id="model" name="EA Java types">
+                    <packagedElement xmi:type="uml:Class" xmi:id="user" name="User">
+                      <ownedAttribute xmi:id="id" name="id"><type xmi:idref="EAJava_int"/></ownedAttribute>
+                      <ownedAttribute xmi:id="name" name="name"><type xmi:idref="EAJava_String"/></ownedAttribute>
+                    </packagedElement>
+                  </uml:Model>
+                </xmi:XMI>
+                """;
+
+        XmiImportData data = new CasegenXmiReader().read(parser.parse(xml.getBytes(StandardCharsets.UTF_8)));
+
+        assertEquals("INTEGER", data.properties().get(0).type().primitiveType());
+        assertEquals("STRING", data.properties().get(1).type().primitiveType());
+    }
+
+    @Test
     void readsLegacyEaFeaturesWithoutXmiIdsUsingTheirOwnEaGuids() {
         XmiImportData data = new EnterpriseArchitectXmiReader().read(
                 parser.parse(legacyFeatures(false, false).getBytes(StandardCharsets.UTF_8)));
