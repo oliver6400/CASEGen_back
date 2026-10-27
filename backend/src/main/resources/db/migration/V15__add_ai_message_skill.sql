@@ -1,0 +1,6 @@
+ALTER TABLE ai_messages
+    ADD COLUMN skill VARCHAR(30) NOT NULL DEFAULT 'GENERAL';
+
+ALTER TABLE ai_messages
+    ADD CONSTRAINT ck_ai_messages_skill
+    CHECK (skill IN ('GENERAL', 'UML_REVIEWER', 'DATABASE_REVIEWER'));

@@ -21,6 +21,8 @@ public class WebSocketSubscriptionInterceptor implements ChannelInterceptor {
     private static final Pattern MODEL_TOPIC = Pattern.compile("^/topic/models/([0-9a-fA-F-]{36})$");
     private static final Pattern DIAGRAM_TOPIC = Pattern.compile(
             "^/topic/diagrams/([0-9a-fA-F-]{36})(?:/presence)?$");
+    private static final Pattern PROJECT_AI_TOPIC = Pattern.compile(
+            "^/topic/projects/([0-9a-fA-F-]{36})/ai$");
 
     private final JwtDecoder jwtDecoder;
     private final RealtimeSubscriptionAuthorizationService authorization;
@@ -54,6 +56,11 @@ public class WebSocketSubscriptionInterceptor implements ChannelInterceptor {
         String destination = accessor.getDestination();
         UUID userId = accessor.getUser() == null ? null : UUID.fromString(accessor.getUser().getName());
         Matcher model = MODEL_TOPIC.matcher(destination == null ? "" : destination);
+        Matcher projectAi = PROJECT_AI_TOPIC.matcher(destination == null ? "" : destination);
+        if (projectAi.matches()) {
+            authorization.requireProjectAi(UUID.fromString(projectAi.group(1)), userId);
+            return;
+        }
         if (model.matches()) {
             authorization.requireModelRead(UUID.fromString(model.group(1)), userId);
             return;

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 
 import java.time.Instant;
 import java.util.List;
@@ -54,6 +55,30 @@ class WebSocketSubscriptionInterceptorTest {
 
         verify(authorization).requireModelRead(modelId, userId);
         verify(authorization, Mockito.times(2)).requireDiagramRead(diagramId, userId);
+    }
+
+    @Test
+    void authorizesOnlyTheOfficialProjectAiTopic() {
+        UUID userId = UUID.randomUUID();
+        UUID projectId = UUID.randomUUID();
+
+        subscribe("/topic/projects/" + projectId + "/ai", userId);
+
+        verify(authorization).requireProjectAi(projectId, userId);
+        assertThrows(AccessDeniedException.class,
+                () -> subscribe("/topic/projects/" + projectId + "/ai/extra", userId));
+    }
+
+    @Test
+    void rejectsUnauthenticatedAiSubscription() {
+        UUID projectId = UUID.randomUUID();
+        doThrow(new AccessDeniedException("denied"))
+                .when(authorization).requireProjectAi(projectId, null);
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setDestination("/topic/projects/" + projectId + "/ai");
+
+        assertThrows(AccessDeniedException.class, () -> interceptor.preSend(message(accessor),
+                Mockito.mock(org.springframework.messaging.MessageChannel.class)));
     }
 
     @Test

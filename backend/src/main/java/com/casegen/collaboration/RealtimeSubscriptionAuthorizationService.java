@@ -47,6 +47,13 @@ public class RealtimeSubscriptionAuthorizationService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public void requireProjectAi(UUID projectId, UUID userId) {
+        if (!authorization.canAccessInternalCollaborationAs(projectId, userId)) {
+            throw new AccessDeniedException("The user cannot subscribe to project AI");
+        }
+    }
+
     private void requireProjectRead(UUID projectId, UUID userId) {
         if (!authorization.canReadAs(projectId, userId)) {
             throw new AccessDeniedException("The user cannot subscribe to this project");

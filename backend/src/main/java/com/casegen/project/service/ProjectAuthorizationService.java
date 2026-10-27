@@ -113,6 +113,17 @@ public class ProjectAuthorizationService {
                 .orElse(false);
     }
 
+    /** Internal collaboration access: unlike public read, it requires active membership. */
+    public boolean canAccessInternalCollaborationAs(UUID projectId, UUID userId) {
+        if (userId == null) return false;
+        User user = userRepository.findById(userId).filter(User::isEnabled).orElse(null);
+        if (user == null) return false;
+        if (user.getSystemRole() == SystemRole.SUPERUSER) return true;
+        return projectMemberRepository
+                .findByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMemberStatus.ACTIVE)
+                .isPresent();
+    }
+
     private User require(boolean granted) {
         if (!granted) {
             throw denied();

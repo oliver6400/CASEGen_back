@@ -28,6 +28,20 @@ server:
   port: 8080
 
 casegen:
+  ai:
+    provider: ${AI_PROVIDER:OLLAMA}
+    max-message-length: ${AI_MAX_MESSAGE_LENGTH:8000}
+    context-message-limit: ${AI_CONTEXT_MESSAGE_LIMIT:30}
+    context-max-chars: ${AI_CONTEXT_MAX_CHARS:24000}
+    ollama:
+      base-url: ${AI_OLLAMA_BASE_URL:http://localhost:11434}
+      model: ${AI_OLLAMA_MODEL:qwen3:4b}
+      timeout: ${AI_OLLAMA_TIMEOUT:PT2M}
+    gemini:
+      api-key: ${GEMINI_API_KEY:}
+      model: ${GEMINI_MODEL:gemini-2.5-flash}
+      base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com/v1beta}
+      timeout: ${GEMINI_TIMEOUT:PT2M}
   image-import:
     provider: ${IMAGE_IMPORT_PROVIDER:GEMINI}
     max-bytes: ${IMAGE_IMPORT_MAX_BYTES:10485760}

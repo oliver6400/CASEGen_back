@@ -21,6 +21,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mockito;
 import org.springframework.security.access.AccessDeniedException;
 
@@ -119,6 +121,46 @@ class ProjectAuthorizationServiceTest {
 
         assertThrows(AccessDeniedException.class,
                 () -> authorizationService.requireActiveMemberOrSuperuser(project.getId()));
+    }
+
+    @ParameterizedTest
+    @EnumSource(ProjectMemberRole.class)
+    void everyActiveProjectRoleCanSubscribeToProjectAi(ProjectMemberRole role) {
+        when(user.isEnabled()).thenReturn(true);
+        when(user.getSystemRole()).thenReturn(com.casegen.auth.domain.SystemRole.USER);
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        membership(role);
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                authorizationService.canAccessInternalCollaborationAs(project.getId(), user.getId()));
+    }
+
+    @Test
+    void enabledSuperuserCanSubscribeToProjectAiWithoutMembership() {
+        when(user.isEnabled()).thenReturn(true);
+        when(user.getSystemRole()).thenReturn(com.casegen.auth.domain.SystemRole.SUPERUSER);
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                authorizationService.canAccessInternalCollaborationAs(project.getId(), user.getId()));
+    }
+
+    @Test
+    void publicOutsiderRevokedDisabledAndAnonymousCannotSubscribeToProjectAi() {
+        when(project.getVisibility()).thenReturn(com.casegen.project.domain.ProjectVisibility.PUBLIC);
+        when(user.isEnabled()).thenReturn(true);
+        when(user.getSystemRole()).thenReturn(com.casegen.auth.domain.SystemRole.USER);
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(memberRepository.findByProjectIdAndUserIdAndStatus(
+                project.getId(), user.getId(), ProjectMemberStatus.ACTIVE)).thenReturn(Optional.empty());
+
+        org.junit.jupiter.api.Assertions.assertFalse(
+                authorizationService.canAccessInternalCollaborationAs(project.getId(), user.getId()));
+        org.junit.jupiter.api.Assertions.assertFalse(
+                authorizationService.canAccessInternalCollaborationAs(project.getId(), null));
+        when(user.isEnabled()).thenReturn(false);
+        org.junit.jupiter.api.Assertions.assertFalse(
+                authorizationService.canAccessInternalCollaborationAs(project.getId(), user.getId()));
     }
 
     private void membership(ProjectMemberRole role) {

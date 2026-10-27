@@ -1,4 +1,4 @@
-import { ArrowLeft, CircleHelp, Download, Eye, Focus, Maximize2, PanelLeftOpen, PanelRightOpen, Palette, Plus, RefreshCw, RotateCcw, Wrench } from 'lucide-react'
+import { ArrowLeft, Bot, CircleHelp, Download, Eye, Focus, Maximize2, PanelLeftOpen, PanelRightOpen, Palette, Plus, RefreshCw, RotateCcw, Wrench } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAppearanceStore } from '../../appearance/appearanceStore'
 import type { ClassDiagram, UmlClassifierKind } from '../types/uml'
@@ -30,9 +30,12 @@ interface ModelingToolbarProps {
   onFitView: () => void
   onExportXmi: () => void
   isExportingXmi: boolean
+  showAi: boolean
+  aiOpen: boolean
+  onToggleAi: () => void
 }
 
-export function ModelingToolbar({ projectId, projectName, modelName, semanticRevision, diagram, canEdit, isCreating, onAddExisting, onSyncRelationships, onToggleToolbox, onShowLeftPanel, onShowRightPanel, onFocusDiagram, onRestorePanels, leftPanelHidden, rightPanelHidden, toolboxVisible, focusMode, onRefresh, onFitView, onExportXmi, isExportingXmi }: ModelingToolbarProps) {
+export function ModelingToolbar({ projectId, projectName, modelName, semanticRevision, diagram, canEdit, isCreating, onAddExisting, onSyncRelationships, onToggleToolbox, onShowLeftPanel, onShowRightPanel, onFocusDiagram, onRestorePanels, leftPanelHidden, rightPanelHidden, toolboxVisible, focusMode, onRefresh, onFitView, onExportXmi, isExportingXmi, showAi, aiOpen, onToggleAi }: ModelingToolbarProps) {
   const openAppearance = useAppearanceStore((state) => state.openPanel)
   return (
     <nav className="workspace-panel grid min-w-0 gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2" style={{ gridColumn: '1 / -1' }} aria-label="Barra de modelado">
@@ -56,6 +59,7 @@ export function ModelingToolbar({ projectId, projectName, modelName, semanticRev
           <button className="toolbar-button" aria-pressed={toolboxVisible} onClick={onToggleToolbox} type="button"><Wrench size={15} /> Toolbox</button>
         </>}
         <button className="toolbar-button" disabled={isExportingXmi} onClick={onExportXmi} title={`${modelName}.xmi · UML/XMI`} type="button"><Download size={15} /> {isExportingXmi ? 'Exportando…' : 'Exportar XMI'}</button>
+        {showAi && <button className="toolbar-button" aria-pressed={aiOpen} onClick={onToggleAi} type="button"><Bot size={15} /> IA colaborativa</button>}
         {leftPanelHidden && <button className="toolbar-button" onClick={onShowLeftPanel} type="button"><PanelLeftOpen size={15} /> Diagramas</button>}
         {rightPanelHidden && <button className="toolbar-button" onClick={onShowRightPanel} type="button"><PanelRightOpen size={15} /> Propiedades</button>}
         {!focusMode ? <button className="icon-button" onClick={onFocusDiagram} title="Enfocar diagrama" type="button"><Focus size={17} /></button> : <button className="toolbar-button" onClick={onRestorePanels} type="button"><RotateCcw size={15} /> Restaurar paneles</button>}
