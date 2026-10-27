@@ -107,12 +107,20 @@ public class GenerationService {
             runs.stage(id,"PACKAGING","PACKAGING");
             UUID packaging=runs.startTest(id,"PACKAGING");
             try {
-                String rootFolder=safeArtifactId(input.profileSnapshot().path("profile").path("artifactId").asText());
+                String rootFolder=safeArtifactId(input.profileSnapshot().path("profile").path("artifactId").asString());
                 String fileName=rootFolder+"-v"+source.modelVersionNumber()+".zip";
                 Path zip=zip(id,workspace,rootFolder,fileName);
                 validateZip(zip,rootFolder);
                 runs.artifact(UUID.randomUUID(),id,runtime.relativize(zip).toString().replace('\\','/'),zip.getFileName().toString(),checksum(zip),Files.size(zip));
-                runs.finishTest(packaging,true,fileName+" packaged and registered.");
+
+                Path frontendWorkspace=runtime.resolve(id.toString()).resolve("frontend-workspace").normalize();
+                new com.casegen.generation.frontend.service.ReactNativeFrontendRenderer().render(frontendWorkspace,input,
+                        new com.casegen.generation.frontend.service.ReactNativeFrontendRenderer.Traceability(source.modelName(),source.modelVersionNumber()));
+                String frontendRoot=rootFolder+"-react-native";
+                String frontendFile=frontendRoot+"-v"+source.modelVersionNumber()+".zip";
+                Path frontendZip=zip(id,frontendWorkspace,frontendRoot,frontendFile);
+                runs.artifact(UUID.randomUUID(),id,"REACT_NATIVE_ZIP",runtime.relativize(frontendZip).toString().replace('\\','/'),frontendZip.getFileName().toString(),checksum(frontendZip),Files.size(frontendZip));
+                runs.finishTest(packaging,true,fileName+" and "+frontendFile+" packaged and registered.");
             } catch(Exception error){runs.finishTest(packaging,false,safe(error));throw error;}
             runs.success(id);
         } catch(Exception error) {

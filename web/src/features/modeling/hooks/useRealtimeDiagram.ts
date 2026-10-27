@@ -71,11 +71,13 @@ export function useRealtimeDiagram({ modelId, diagramId, currentUserId, selected
     queryFn: () => collaborationApi.activity(diagramId!),
     enabled: Boolean(diagramId),
   })
-  commandRef.current = { selectedElementId, activity: presenceActivity }
-  participantsRef.current = participants
-  classifiersRef.current = classifiers
-  diagramRef.current = diagram
-  currentUserRef.current = currentUserId
+  useEffect(() => {
+    commandRef.current = { selectedElementId, activity: presenceActivity }
+    participantsRef.current = participants
+    classifiersRef.current = classifiers
+    diagramRef.current = diagram
+    currentUserRef.current = currentUserId
+  }, [selectedElementId, presenceActivity, participants, classifiers, diagram, currentUserId])
 
   useEffect(() => {
     if (!modelId || !diagramId) return
