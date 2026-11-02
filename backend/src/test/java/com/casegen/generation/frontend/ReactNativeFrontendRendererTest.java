@@ -31,11 +31,26 @@ class ReactNativeFrontendRendererTest {
 
         assertTrue(Files.exists(workspace.resolve("App.tsx")));
         assertTrue(Files.exists(workspace.resolve("src/screens/LoginScreen.tsx")));
+        assertTrue(Files.exists(workspace.resolve("src/screens/HomeScreen.tsx")));
         assertTrue(Files.exists(workspace.resolve("src/screens/CustomerScreen.tsx")));
+        assertTrue(Files.exists(workspace.resolve("src/components/VoiceAssistantModal.tsx")));
+        assertTrue(Files.exists(workspace.resolve("src/db/sqlite.ts")));
+        assertTrue(Files.exists(workspace.resolve("src/db/SyncQueueService.ts")));
+        String pkg = Files.readString(workspace.resolve("package.json"));
         String login = Files.readString(workspace.resolve("src/screens/LoginScreen.tsx"));
+        String home = Files.readString(workspace.resolve("src/screens/HomeScreen.tsx"));
         String auth = Files.readString(workspace.resolve("src/auth/AuthContext.tsx"));
         String client = Files.readString(workspace.resolve("src/api/client.ts"));
         String config = Files.readString(workspace.resolve("src/config.ts"));
+        String customerScreen = Files.readString(workspace.resolve("src/screens/CustomerScreen.tsx"));
+        String voiceModal = Files.readString(workspace.resolve("src/components/VoiceAssistantModal.tsx"));
+        String sqlite = Files.readString(workspace.resolve("src/db/sqlite.ts"));
+        String sync = Files.readString(workspace.resolve("src/db/SyncQueueService.ts"));
+        assertTrue(pkg.contains("expo-sqlite"));
+        assertTrue(sqlite.contains("offline_sync_queue"));
+        assertTrue(sqlite.contains("customer"));
+        assertTrue(sync.contains("syncPendingQueue"));
+        assertTrue(home.contains("SyncQueueService"));
         assertTrue(login.contains("placeholder='Email'"));
         assertTrue(login.contains("Registrarme"));
         assertTrue(auth.contains("/api/auth/register"));
@@ -43,8 +58,13 @@ class ReactNativeFrontendRendererTest {
         assertTrue(config.contains("10.0.2.2"));
         assertTrue(auth.contains("/api/auth/login"));
         assertTrue(auth.contains("JSON.stringify({ email, password })"));
-        assertTrue(auth.contains("/api/auth/register"));
-        assertTrue(auth.contains("JSON.stringify({ displayName, email, password })"));
         assertTrue(client.contains("Authorization: `Bearer ${accessToken}`"));
+        assertTrue(customerScreen.contains("'/api/customer'"));
+        assertTrue(customerScreen.contains("method: 'PUT'"));
+        assertTrue(customerScreen.contains("method: 'DELETE'"));
+        assertTrue(customerScreen.contains("SyncQueueService"));
+        assertTrue(customerScreen.contains("getLocalItems"));
+        assertTrue(voiceModal.contains("'/api/ai/voice-command'"));
+        assertTrue(voiceModal.contains("SyncQueueService"));
     }
 }
