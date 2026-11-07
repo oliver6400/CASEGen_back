@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../core/network/api_exception.dart';
+import '../../core/storage/local_database.dart';
 import '../../core/storage/selection_storage.dart';
 import '../../models/project_summary.dart';
 import '../../models/uml_model_summary.dart';
@@ -18,6 +19,7 @@ class WorkspaceController extends ChangeNotifier {
   UmlModelSummary? selectedModel;
   bool isLoading = false;
   String? errorMessage;
+  bool isOfflineData = false;
   bool _loaded = false;
 
   Future<void> load() async {
@@ -27,15 +29,40 @@ class WorkspaceController extends ChangeNotifier {
     notifyListeners();
     try {
       final saved = await _selectionStorage.read();
-      projects = await _projectService.listProjects();
+      try {
+        projects = await _projectService.listProjects();
+        await LocalDatabase.instance.saveProjects(projects);
+        isOfflineData = false;
+      } catch (_) {
+        // Fallback a caché local offline
+        final cached = await LocalDatabase.instance.getCachedProjects();
+        if (cached.isNotEmpty) {
+          projects = cached;
+          isOfflineData = true;
+        } else {
+          rethrow;
+        }
+      }
       selectedProject = _findProject(saved.projectId) ?? projects.firstOrNull;
       if (selectedProject != null) {
-        models = await _projectService.listModels(selectedProject!.id);
+        try {
+          models = await _projectService.listModels(selectedProject!.id);
+          await LocalDatabase.instance.saveModels(selectedProject!.id, models);
+        } catch (_) {
+          final cachedModels = await LocalDatabase.instance.getCachedModels(
+            selectedProject!.id,
+          );
+          if (cachedModels.isNotEmpty) {
+            models = cachedModels;
+          }
+        }
         selectedModel = _findModel(saved.modelId) ?? models.firstOrNull;
       }
       _loaded = true;
     } on ApiException catch (error) {
-      errorMessage = error.message;
+      if (projects.isEmpty) {
+        errorMessage = error.message;
+      }
     } finally {
       isLoading = false;
       notifyListeners();
@@ -53,11 +80,27 @@ class WorkspaceController extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
     try {
-      models = await _projectService.listModels(project.id);
+      try {
+        models = await _projectService.listModels(project.id);
+        await LocalDatabase.instance.saveModels(project.id, models);
+        isOfflineData = false;
+      } catch (_) {
+        final cachedModels = await LocalDatabase.instance.getCachedModels(
+          project.id,
+        );
+        if (cachedModels.isNotEmpty) {
+          models = cachedModels;
+          isOfflineData = true;
+        } else {
+          rethrow;
+        }
+      }
       selectedModel = models.firstOrNull;
       await _selectionStorage.saveModel(selectedModel?.id);
     } on ApiException catch (error) {
-      errorMessage = error.message;
+      if (models.isEmpty) {
+        errorMessage = error.message;
+      }
     } finally {
       isLoading = false;
       notifyListeners();
@@ -77,6 +120,7 @@ class WorkspaceController extends ChangeNotifier {
     selectedModel = null;
     errorMessage = null;
     isLoading = false;
+    isOfflineData = false;
     _loaded = false;
     await _selectionStorage.saveProject(null);
     notifyListeners();

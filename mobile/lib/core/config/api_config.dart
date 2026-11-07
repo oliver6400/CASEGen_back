@@ -12,6 +12,9 @@ class ApiConfig {
     if (configured.isNotEmpty) return _withoutTrailingSlash(configured);
 
     if (kIsWeb) {
+      if (Uri.base.port == 5000) {
+        return Uri.base.origin;
+      }
       final host = Uri.base.host.isEmpty ? 'localhost' : Uri.base.host;
       return 'http://$host:8080';
     }

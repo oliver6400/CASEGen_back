@@ -62,8 +62,11 @@ public class ProjectAuthorizationService {
         boolean activeMember = projectMemberRepository
                 .findByProjectIdAndUserIdAndStatus(projectId, user.getId(), ProjectMemberStatus.ACTIVE)
                 .isPresent();
-        if (!activeMember) throw denied();
-        return user;
+        if (activeMember) return user;
+        boolean publicProject = projectRepository.findById(projectId)
+                .map(p -> p.getVisibility() == ProjectVisibility.PUBLIC).orElse(false);
+        if (publicProject) return user;
+        throw denied();
     }
 
     public ProjectAccessDecision getAccess(UUID projectId) {

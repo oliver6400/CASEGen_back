@@ -1,6 +1,8 @@
 spring:
   application:
     name: casegen-backend
+  config:
+    import: optional:file:../.env[.properties]
 
   servlet:
     multipart:
@@ -28,6 +30,9 @@ server:
   port: 8080
 
 casegen:
+  speech:
+    # Override this with VOSK_MODEL_PATH in the local environment.
+    model-path: ${VOSK_MODEL_PATH:runtime/vosk-model-small-es}
   ai:
     provider: ${AI_PROVIDER:GEMINI}
     max-message-length: ${AI_MAX_MESSAGE_LENGTH:8000}
@@ -36,7 +41,7 @@ casegen:
     ollama:
       base-url: ${AI_OLLAMA_BASE_URL:http://localhost:11434}
       model: ${AI_OLLAMA_MODEL:qwen3:4b}
-      timeout: ${AI_OLLAMA_TIMEOUT:PT2M}
+      timeout: ${AI_OLLAMA_TIMEOUT:PT5M}
     gemini:
       api-key: ${GEMINI_API_KEY:}
       model: ${GEMINI_MODEL:gemini-2.5-flash}
@@ -72,7 +77,7 @@ casegen:
   security:
     cors:
       allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
-      allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:[*],http://127.0.0.1:[*]}
+      allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:[*],http://127.0.0.1:[*],http://10.*:[*],http://192.168.*:[*],http://172.*:[*]}
     jwt:
       issuer: casegen
       secret: ${JWT_SECRET}

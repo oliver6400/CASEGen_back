@@ -1,5 +1,31 @@
 # CASEGen
 
+## Chat IA: voz y uso sin conexión
+
+El dictado del chat usa Vosk (`com.alphacephei:vosk:0.3.45`), una biblioteca Java local; no necesita una API de transcripción ni cobra por uso. La dependencia y el endpoint ya están en el backend. Para transcribir sin conexión también hay que descargar una vez el modelo de español: la biblioteca Maven no incluye los datos del modelo.
+
+Desde PowerShell, en la raíz del repositorio, descarga y extrae el modelo español pequeño oficial:
+
+```powershell
+New-Item -ItemType Directory -Force backend\runtime | Out-Null
+Invoke-WebRequest `
+  -Uri https://alphacephei.com/vosk/models/vosk-model-small-es-0.42.zip `
+  -OutFile backend\runtime\vosk-model-small-es-0.42.zip
+Expand-Archive `
+  -Path backend\runtime\vosk-model-small-es-0.42.zip `
+  -DestinationPath backend\runtime
+```
+
+El `.env.example` configura una ruta portable bajo `backend/runtime/`. Para usar el modelo en `C:\vosk-model-small-es-0.42`, configura `VOSK_MODEL_PATH=C:\vosk-model-small-es-0.42` en tu `.env` local. El backend carga ese archivo al iniciarse desde `backend/`; también puedes definir `VOSK_MODEL_PATH` como variable de entorno. El modelo queda fuera del repositorio; no lo subas a Git.
+
+El audio se procesa localmente. Para que las respuestas del chat también funcionen sin conexión, usa el proveedor local Ollama (predeterminado) y descarga el modelo configurado antes de desconectarte:
+
+```powershell
+ollama pull qwen3:4b
+```
+
+Mantén Ollama ejecutándose en `http://localhost:11434` al usar el chat. La primera descarga del modelo Vosk y la de Ollama requieren conexión; después, la transcripción y la inferencia local pueden funcionar sin conexión.
+
 ## Importación de diagramas UML desde imágenes
 
 El análisis se ejecuta exclusivamente en el backend. El proveedor principal y predeterminado es
