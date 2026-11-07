@@ -33,6 +33,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         if (!cors.allowedOrigins().isEmpty()) {
             endpoint.setAllowedOrigins(cors.allowedOrigins().toArray(String[]::new));
         }
+        if (!cors.allowedOriginPatterns().isEmpty()) {
+            endpoint.setAllowedOriginPatterns(cors.allowedOriginPatterns().toArray(String[]::new));
+        }
     }
 
     @Override

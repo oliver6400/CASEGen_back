@@ -1,0 +1,76 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: casegen-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-casegen}
+      POSTGRES_USER: ${POSTGRES_USER:-casegen}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-casegen_secure_pass_2026}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-casegen} -d ${POSTGRES_DB:-casegen}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: casegen-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-casegen}
+      DB_USERNAME: ${POSTGRES_USER:-casegen}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-casegen_secure_pass_2026}
+      JWT_SECRET: ${JWT_SECRET:-casegen_prod_jwt_super_secret_key_at_least_32_chars_2026}
+      JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL:-PT15M}
+      JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL:-P30D}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost,http://localhost:5173,http://localhost:80}
+      CORS_ALLOWED_ORIGIN_PATTERNS: ${CORS_ALLOWED_ORIGIN_PATTERNS:-http://localhost:[*],http://127.0.0.1:[*],https://*:[*]}
+      AI_PROVIDER: ${AI_PROVIDER:-OLLAMA}
+      AI_OLLAMA_BASE_URL: ${AI_OLLAMA_BASE_URL:-http://ollama:11434}
+      AI_OLLAMA_MODEL: ${AI_OLLAMA_MODEL:-qwen3:4b}
+      AI_OLLAMA_TIMEOUT: ${AI_OLLAMA_TIMEOUT:-PT5M}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      IMAGE_IMPORT_PROVIDER: ${IMAGE_IMPORT_PROVIDER:-LOCAL}
+      IMAGE_IMPORT_LOCAL_FALLBACK: "true"
+      TESSERACT_COMMAND: tesseract
+      TESSERACT_LANGUAGE: spa
+    volumes:
+      - backend_generation:/app/runtime/generation
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: casegen-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: casegen-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+volumes:
+  postgres_data:
+  backend_generation:
+  ollama_data:
