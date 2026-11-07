@@ -1,6 +1,7 @@
 import axios from 'axios'
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '../features/auth/authStore'
+import { createSingleFlight, jwtExpirationMs } from '../features/auth/jwtToken'
 import type { AuthTokenResponse } from './apiTypes'
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() ?? ''
@@ -20,12 +21,13 @@ interface RetryableRequest extends InternalAxiosRequestConfig {
   _casegenRetried?: boolean
 }
 
-let refreshRequest: Promise<string> | null = null
-
-httpClient.interceptors.request.use((config) => {
-  const { accessToken, tokenType } = useAuthStore.getState()
-  if (accessToken && !isPublicAuthPath(config.url ?? '')) {
-    config.headers.Authorization = `${tokenType} ${accessToken}`
+httpClient.interceptors.request.use(async (config) => {
+  if (!isPublicAuthPath(config.url ?? '')) {
+    const state = useAuthStore.getState()
+    if (state.accessToken) {
+      const accessToken = await getValidAccessToken()
+      config.headers.Authorization = `${state.tokenType} ${accessToken}`
+    }
   }
   return config
 })
@@ -76,13 +78,25 @@ function isPublicAuthPath(url: string) {
   ].some((authPath) => url.endsWith(authPath))
 }
 
-function getRefreshedAccessToken() {
-  if (!refreshRequest) {
-    refreshRequest = refreshToken().finally(() => {
-      refreshRequest = null
-    })
+const getRefreshedAccessToken = createSingleFlight(refreshToken)
+
+export async function getValidAccessToken(minimumValidityMs = 60_000) {
+  const state = useAuthStore.getState()
+  const expiresAt = state.accessToken
+    ? jwtExpirationMs(state.accessToken) ?? state.accessTokenExpiresAt
+    : null
+  if (state.accessToken && expiresAt && expiresAt - Date.now() > minimumValidityMs) {
+    return state.accessToken
   }
-  return refreshRequest
+  if (!state.refreshToken) {
+    throw new Error('No refresh token is available')
+  }
+  try {
+    return await getRefreshedAccessToken()
+  } catch (error) {
+    useAuthStore.getState().clearSession()
+    throw error
+  }
 }
 
 async function refreshToken() {
@@ -90,10 +104,17 @@ async function refreshToken() {
   if (!refreshTokenValue) {
     throw new Error('No refresh token is available')
   }
-  const response = await refreshClient.post<AuthTokenResponse>(
-    '/api/auth/refresh',
-    { refreshToken: refreshTokenValue },
-  )
-  useAuthStore.getState().setTokenPair(response.data)
-  return response.data.accessToken
+  if (import.meta.env.DEV) console.info('[auth] refresh started')
+  try {
+    const response = await refreshClient.post<AuthTokenResponse>(
+      '/api/auth/refresh',
+      { refreshToken: refreshTokenValue },
+    )
+    useAuthStore.getState().setTokenPair(response.data)
+    if (import.meta.env.DEV) console.info('[auth] refresh succeeded')
+    return response.data.accessToken
+  } catch (error) {
+    if (import.meta.env.DEV) console.info('[auth] refresh failed')
+    throw error
+  }
 }

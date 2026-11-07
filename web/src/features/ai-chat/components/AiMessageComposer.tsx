@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { Mic, Square } from 'lucide-react'
+import { ArrowUp, LoaderCircle, Mic, Square } from 'lucide-react'
 import { aiChatApi } from '../api/aiChatApi'
 import type { AiSkill } from '../types/aiMessage'
 
@@ -48,7 +48,6 @@ export function AiMessageComposer({ disabled, processing, onSend }: {
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); submit() }
   }
-
   const stopRecording = async () => {
     const activeCapture = capture.current
     if (!activeCapture) return
@@ -122,26 +121,30 @@ export function AiMessageComposer({ disabled, processing, onSend }: {
     }
   }
 
-  return <div className="border-t border-[var(--border)] pt-3">
-    {processing && <p className="mb-2 text-xs font-medium text-indigo-600">CASEGen IA está respondiendo…</p>}
-    {recording && <p aria-live="polite" className="mb-2 text-xs font-medium text-red-600">Grabando… pulsa el micrófono para terminar (máx. 60 s).</p>}
-    {transcribing && <p aria-live="polite" className="mb-2 text-xs font-medium text-indigo-600">Transcribiendo audio sin conexión…</p>}
-    {speechError && <p role="alert" className="mb-2 text-xs text-red-600">{speechError}</p>}
-    <label className="mb-2 block text-xs font-medium text-slate-600">Modo IA
-      <select aria-label="Modo IA" className="ml-2 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs" disabled={disabled || processing} onChange={(event) => setSkill(event.target.value as AiSkill)} value={skill}>
-        <option value="GENERAL">General</option>
-        <option value="UML_REVIEWER">Revisor UML</option>
-        <option value="DATABASE_REVIEWER">Revisor BD</option>
-      </select>
-    </label>
-    <textarea className="min-h-24 w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-sm outline-none focus:border-indigo-400" disabled={disabled || processing || recording || transcribing} maxLength={MAX_LENGTH} onChange={(event) => setContent(event.target.value)} onKeyDown={onKeyDown} placeholder="Escribe una pregunta…" value={content} />
-    <div className="mt-2 flex items-center justify-between gap-2">
-      <span className="text-[10px] text-slate-400">{content.length}/{MAX_LENGTH} · Shift+Enter para nueva línea</span>
-      <div className="flex items-center gap-2">
-        <button aria-label={recording ? 'Detener grabación' : 'Dictar con el micrófono'} className="toolbar-button" disabled={disabled || processing || transcribing} onClick={() => recording ? void stopRecording() : void startRecording()} title={recording ? 'Detener grabación' : 'Dictar con el micrófono'} type="button">
+  return <div className="border-t border-[var(--border)] pt-1.5">
+    {processing && <p className="mb-1 text-[11px] font-medium text-indigo-600">CASEGen IA está respondiendo…</p>}
+    {recording && <p aria-live="polite" className="mb-1 text-[11px] font-medium text-red-600">Grabando… pulsa el micrófono para terminar (máx. 60 s).</p>}
+    {transcribing && <p aria-live="polite" className="mb-1 text-[11px] font-medium text-indigo-600">Transcribiendo audio sin conexión…</p>}
+    {speechError && <p role="alert" className="mb-1 text-[11px] text-red-600">{speechError}</p>}
+    <textarea className="min-h-14 w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" disabled={disabled || processing || recording || transcribing} maxLength={MAX_LENGTH} onChange={(event) => setContent(event.target.value)} onKeyDown={onKeyDown} placeholder="Escribe una pregunta…" value={content} />
+    <div className="mt-1 flex items-end justify-between gap-2">
+      <div className="min-w-0">
+        <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600">Modo IA
+          <select aria-label="Modo IA" className="min-w-0 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs" disabled={disabled || processing || recording || transcribing} onChange={(event) => setSkill(event.target.value as AiSkill)} value={skill}>
+            <option value="GENERAL">General</option>
+            <option value="UML_REVIEWER">Revisor UML</option>
+            <option value="DATABASE_REVIEWER">Revisor BD</option>
+          </select>
+        </label>
+        <span className="mt-0.5 block text-[9px] text-slate-400">{content.length}/{MAX_LENGTH} · Shift+Enter: nueva línea</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <button aria-label={recording ? 'Detener grabación' : 'Dictar con el micrófono'} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-slate-600 transition hover:border-indigo-300 hover:text-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-50" disabled={disabled || processing || transcribing} onClick={() => recording ? void stopRecording() : void startRecording()} title={recording ? 'Detener grabación' : 'Dictar con el micrófono'} type="button">
           {recording ? <Square aria-hidden="true" size={16} /> : <Mic aria-hidden="true" size={16} />}
         </button>
-        <button className="primary-button" disabled={disabled || processing || recording || transcribing || !content.trim()} onClick={submit} type="button">Enviar</button>
+        <button aria-label={processing ? 'CASEGen IA está respondiendo' : 'Enviar mensaje'} className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-indigo-300" disabled={disabled || processing || recording || transcribing || !content.trim()} onClick={submit} title={processing ? 'Procesando…' : 'Enviar'} type="button">
+          {processing ? <LoaderCircle className="animate-spin" size={17} /> : <ArrowUp aria-hidden="true" size={18} strokeWidth={2.5} />}
+        </button>
       </div>
     </div>
   </div>

@@ -1,7 +1,6 @@
 export function AiContextBadge({ modelName, diagramName }: { modelName: string; diagramName?: string }) {
-  return <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs text-indigo-900">
-    <div className="font-semibold">Contexto actual</div>
-    <div className="mt-1 truncate">Modelo: {modelName}</div>
-    <div className="truncate">Diagrama: {diagramName ?? 'Sin diagrama seleccionado'}</div>
+  return <div className="flex gap-2 overflow-hidden rounded-lg border border-indigo-100 bg-indigo-50 px-2.5 py-1.5 text-[11px] text-indigo-900">
+    <span className="shrink-0 font-semibold">Contexto:</span>
+    <span className="truncate">{modelName}{diagramName ? ` / ${diagramName}` : ''}</span>
   </div>
 }

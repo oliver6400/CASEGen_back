@@ -37,6 +37,7 @@ import com.casegen.project.repository.ProjectMemberRepository;
 import com.casegen.project.repository.ProjectRepository;
 import com.jayway.jsonpath.JsonPath;
 import java.util.UUID;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -49,7 +50,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest
+@SpringBootTest(properties = "casegen.security.jwt.access-token-ttl=PT1H")
 @AutoConfigureMockMvc
 @Transactional
 @EnabledIfEnvironmentVariable(named = "DB_URL", matches = "jdbc:postgresql:.*")
@@ -117,7 +118,12 @@ class SecurityIntegrationTest {
 
         String accessToken = jsonValue(registration, "$.accessToken");
         String refreshToken = jsonValue(registration, "$.refreshToken");
-        assertEquals(user.getId().toString(), jwtDecoder.decode(accessToken).getSubject());
+        var accessJwt = jwtDecoder.decode(accessToken);
+        assertEquals(user.getId().toString(), accessJwt.getSubject());
+        assertNotNull(accessJwt.getIssuedAt());
+        assertNotNull(accessJwt.getExpiresAt());
+        long ttlSeconds = Duration.between(accessJwt.getIssuedAt(), accessJwt.getExpiresAt()).toSeconds();
+        assertEquals(3600, ttlSeconds);
         RefreshToken storedRefreshToken = refreshTokenRepository
                 .findByTokenHash(tokenService.hash(refreshToken)).orElseThrow();
         assertNotEquals(refreshToken, storedRefreshToken.getTokenHash());
@@ -175,6 +181,16 @@ class SecurityIntegrationTest {
         mockMvc.perform(post("/api/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(refreshJson(replacement)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void opaqueRefreshTokenCannotAuthenticateAsAnAccessToken() throws Exception {
+        MvcResult registration = register(uniqueEmail("refresh-as-access"));
+        String refreshToken = jsonValue(registration, "$.refreshToken");
+
+        mockMvc.perform(get("/api/auth/me")
+                        .header("Authorization", bearer(refreshToken)))
                 .andExpect(status().isUnauthorized());
     }
 

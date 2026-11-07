@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.casegen.modeling.command.CreateUmlAssociationCommand;
 import com.casegen.modeling.command.CreateUmlClassifierCommand;
+import com.casegen.modeling.command.CreateUmlGeneralizationCommand;
 import com.casegen.modeling.command.CreateUmlModelCommand;
+import com.casegen.modeling.command.CreateUmlRealizationCommand;
 import com.casegen.modeling.command.UmlAssociationEndCommand;
 import com.casegen.modeling.domain.AggregationKind;
 import com.casegen.modeling.domain.AssociationEndOwnership;
@@ -28,6 +30,7 @@ import com.casegen.modeling.exception.SemanticErrorCode;
 import com.casegen.modeling.exception.SemanticException;
 import com.casegen.modeling.repository.UmlElementRepository;
 import com.casegen.modeling.service.DiagramService;
+import com.casegen.modeling.service.DiagramEdgePlacementResult;
 import com.casegen.modeling.service.DiagramRepresentationCleanupService;
 import com.casegen.modeling.service.UmlModelService;
 import com.casegen.modeling.service.UmlRelationshipService;
@@ -132,6 +135,29 @@ class ClassDiagramPersistenceIntegrationTest {
     }
 
     @Test
+    void autoPlacesClassifierWithEditorDefaultsAndIsIdempotent() {
+        Fixture fixture = fixture();
+        DiagramResponse diagram = createDiagram(fixture.model(), "Auto placement");
+
+        DiagramNodeResponse first = diagramService.addClassifierNodeAutoPlaced(
+                diagram.id(), fixture.first().id());
+        DiagramNodeResponse replay = diagramService.addClassifierNodeAutoPlaced(
+                diagram.id(), fixture.first().id());
+        DiagramNodeResponse second = diagramService.addClassifierNodeAutoPlaced(
+                diagram.id(), fixture.second().id());
+
+        assertEquals(first.id(), replay.id());
+        assertEquals(50, first.x());
+        assertEquals(50, first.y());
+        assertEquals(310, first.width());
+        assertEquals(180, first.height());
+        assertEquals(430, second.x());
+        assertEquals(50, second.y());
+        assertEquals(2, diagramService.getDiagram(diagram.id()).nodes().size());
+        assertEquals(2, diagramService.getDiagram(diagram.id()).revision());
+    }
+
+    @Test
     void allowsSameElementInTwoDiagrams() {
         Fixture fixture = fixture();
         DiagramResponse firstDiagram = createDiagram(fixture.model(), "First view");
@@ -163,6 +189,89 @@ class ClassDiagramPersistenceIntegrationTest {
         DiagramResponse reloaded = diagramService.getDiagram(diagram.id());
         assertEquals(1, reloaded.edges().size());
         assertEquals(before + 1, reloaded.revision());
+    }
+
+    @Test
+    void autoPlacesAssociationOnceWhenBothClassifiersAreVisible() {
+        Fixture fixture = fixture();
+        DiagramResponse diagram = createDiagram(fixture.model(), "Association proposal");
+        addNode(diagram.id(), fixture.first().id(), 0, 0);
+        addNode(diagram.id(), fixture.second().id(), 400, 0);
+        var association = relationshipService.createAssociation(fixture.model().id(),
+                association(fixture.first().id(), fixture.second().id()));
+
+        var created = diagramService.addRelationshipEdgeIfPossible(diagram.id(), association.id());
+        var replay = diagramService.addRelationshipEdgeIfPossible(diagram.id(), association.id());
+
+        assertEquals(DiagramEdgePlacementResult.Status.CREATED, created.status());
+        assertEquals(DiagramEdgePlacementResult.Status.ALREADY_EXISTS, replay.status());
+        assertEquals(created.edgeId(), replay.edgeId());
+        var reloaded = diagramService.getDiagram(diagram.id());
+        assertEquals(1, reloaded.edges().size());
+        assertEquals(association.id(), reloaded.edges().getFirst().umlElementId());
+        assertEquals(1, association.ends().getFirst().lowerBound());
+        assertEquals(1, association.ends().getFirst().upperBound());
+        assertEquals(0, association.ends().get(1).lowerBound());
+        assertEquals(null, association.ends().get(1).upperBound());
+    }
+
+    @Test
+    void autoPlacesGeneralizationWhenBothClassifiersAreVisible() {
+        Fixture fixture = fixture();
+        DiagramResponse diagram = createDiagram(fixture.model(), "Generalization proposal");
+        DiagramNodeResponse specific = addNode(diagram.id(), fixture.first().id(), 0, 0);
+        DiagramNodeResponse general = addNode(diagram.id(), fixture.second().id(), 400, 0);
+        var relationship = relationshipService.createGeneralization(fixture.model().id(),
+                new CreateUmlGeneralizationCommand(fixture.first().id(), fixture.second().id(),
+                        true, null));
+
+        var placement = diagramService.addRelationshipEdgeIfPossible(
+                diagram.id(), relationship.id());
+
+        assertEquals(DiagramEdgePlacementResult.Status.CREATED, placement.status());
+        var edge = diagramService.getDiagram(diagram.id()).edges().getFirst();
+        assertEquals(relationship.id(), edge.umlElementId());
+        assertEquals(specific.id(), edge.sourceNodeId());
+        assertEquals(general.id(), edge.targetNodeId());
+    }
+
+    @Test
+    void autoPlacesRealizationWhenClassAndInterfaceAreVisible() {
+        Fixture fixture = fixture();
+        var contract = modelService.createClassifier(fixture.model().id(),
+                new CreateUmlClassifierCommand("IService", null, null,
+                        ClassifierKind.INTERFACE, Visibility.PUBLIC, false, false));
+        DiagramResponse diagram = createDiagram(fixture.model(), "Realization proposal");
+        DiagramNodeResponse client = addNode(diagram.id(), fixture.first().id(), 0, 0);
+        DiagramNodeResponse supplier = addNode(diagram.id(), contract.id(), 400, 0);
+        var relationship = relationshipService.createRealization(fixture.model().id(),
+                new CreateUmlRealizationCommand(fixture.first().id(), contract.id(), null));
+
+        var placement = diagramService.addRelationshipEdgeIfPossible(
+                diagram.id(), relationship.id());
+
+        assertEquals(DiagramEdgePlacementResult.Status.CREATED, placement.status());
+        var edge = diagramService.getDiagram(diagram.id()).edges().getFirst();
+        assertEquals(relationship.id(), edge.umlElementId());
+        assertEquals(client.id(), edge.sourceNodeId());
+        assertEquals(supplier.id(), edge.targetNodeId());
+    }
+
+    @Test
+    void leavesSemanticRelationshipWithoutEdgeWhenEndpointIsNotVisible() {
+        Fixture fixture = fixture();
+        DiagramResponse diagram = createDiagram(fixture.model(), "Partial view");
+        addNode(diagram.id(), fixture.first().id(), 0, 0);
+        var association = relationshipService.createAssociation(fixture.model().id(),
+                association(fixture.first().id(), fixture.second().id()));
+        long revision = diagramService.getDiagram(diagram.id()).revision();
+
+        var placement = diagramService.addRelationshipEdgeIfPossible(diagram.id(), association.id());
+
+        assertEquals(DiagramEdgePlacementResult.Status.ENDPOINT_NOT_VISIBLE, placement.status());
+        assertTrue(diagramService.getDiagram(diagram.id()).edges().isEmpty());
+        assertEquals(revision, diagramService.getDiagram(diagram.id()).revision());
+        assertTrue(elementRepository.existsById(association.id()));
     }
 
     @Test

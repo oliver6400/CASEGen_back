@@ -1,4 +1,4 @@
--- Migration V16: Seed production and testing users
+-- Migration V20: Seed production and testing users
 -- Password for all seeded users: admin1234
 -- Hash: $2a$10$zSlfnqZktD/7p2BhDf0eIOvYpU8tMogT3..94X52IXizYwjWsK3US
 

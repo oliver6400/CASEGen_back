@@ -44,7 +44,7 @@ export interface PagedAiMessageResponse {
 
 export interface AiMessageEvent {
   eventId: string
-  eventType: string
+  eventType: 'AI_MESSAGE_CREATED'
   projectId: string
   sessionId: string
   message: AiMessageResponse

@@ -1,4 +1,5 @@
 import { Client, type IMessage } from '@stomp/stompjs'
+import { getValidAccessToken } from '../../../api/httpClient'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useAuthStore } from '../../auth/authStore'
@@ -88,12 +89,16 @@ export function useRealtimeDiagram({ modelId, diagramId, currentUserId, selected
     window.addEventListener('casegen:concurrent-modification', refreshAfterConflict)
     const client = new Client({
       brokerURL: websocketUrl(),
-      connectHeaders: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      connectHeaders: {},
       reconnectDelay: 3000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
       debug: () => undefined,
     })
+    client.beforeConnect = async () => {
+      const token = await getValidAccessToken()
+      client.connectHeaders = { Authorization: `Bearer ${token}` }
+    }
     clientRef.current = client
 
     const receive = (message: IMessage) => {
@@ -131,9 +136,15 @@ export function useRealtimeDiagram({ modelId, diagramId, currentUserId, selected
       })
       publishPresence(client, diagramId, commandRef.current)
     }
-    client.activate()
+    let disposed = false
+    const activationTimer = window.setTimeout(() => {
+      if (disposed) return
+      client.activate()
+    }, 0)
     const heartbeat = window.setInterval(() => publishPresence(client, diagramId, commandRef.current), 15_000)
     return () => {
+      disposed = true
+      window.clearTimeout(activationTimer)
       window.clearInterval(heartbeat)
       window.removeEventListener('casegen:concurrent-modification', refreshAfterConflict)
       clientRef.current = null

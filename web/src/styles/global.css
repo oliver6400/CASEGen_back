@@ -19,6 +19,20 @@
   text-rendering: optimizeLegibility;
 }
 
+.uml-preview { margin-top: .6rem; color: #334155; font-size: .75rem; }
+.uml-box { overflow: hidden; border: 1px solid #64748b; border-radius: .35rem; background: white; }
+.uml-box header { display: flex; min-height: 2.25rem; flex-direction: column; align-items: center; justify-content: center; padding: .3rem .6rem; text-align: center; }
+.uml-box header small { font-size: .65rem; }
+.uml-box section { display: flex; min-height: 1.55rem; flex-direction: column; justify-content: center; border-top: 1px solid #94a3b8; padding: .25rem .6rem; }
+.uml-box section span { overflow-wrap: anywhere; }
+.uml-relationship { display: grid; grid-template-columns: minmax(0,1fr) 5.5rem minmax(0,1fr); align-items: center; gap: .25rem; }
+.uml-relationship > div { min-width: 0; text-align: center; }
+.uml-relationship svg { width: 100%; color: #475569; }
+.uml-relationship small { grid-column: 1 / -1; text-align: center; color: #64748b; }
+.uml-mini-classifier { overflow: hidden; border: 1px solid #64748b; border-radius: .25rem; background: white; padding: .45rem .25rem; text-overflow: ellipsis; white-space: nowrap; }
+.uml-rename { display: flex; align-items: center; justify-content: center; gap: .75rem; border: 1px solid #94a3b8; border-radius: .35rem; background: white; padding: .65rem; }
+.uml-fallback { border: 1px dashed #94a3b8; border-radius: .35rem; background: white; padding: .65rem; font-weight: 600; }
+
 * { box-sizing: border-box; }
 html[data-app-theme="dark"] { --app-bg: #0f172a; --surface: #1e293b; --surface-secondary: #334155; --text-primary: #f8fafc; --text-secondary: #cbd5e1; --border: #475569; }
 html[data-app-theme="soft"] { --app-bg: #f5f5f4; --surface: #fafaf9; --surface-secondary: #e7e5e4; --text-primary: #292524; --text-secondary: #78716c; --border: #d6d3d1; }
@@ -62,6 +76,17 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 
 .primary-button { background-color: var(--primary); }
 .primary-button:hover:not(:disabled) { background-color: var(--primary-hover); }
+
+@keyframes ai-message-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.ai-message-enter { animation: ai-message-enter 220ms ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-message-enter { animation: none; }
+}
 .app-themed { background-color: var(--app-bg); color: var(--text-primary); }
 .app-header { background-color: color-mix(in srgb, var(--surface) 92%, transparent); border-color: var(--border); }
 .app-themed .bg-white { background-color: var(--surface); }

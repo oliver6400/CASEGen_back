@@ -24,7 +24,8 @@ public interface AiMessageRepository extends JpaRepository<AiMessage, UUID> {
     @EntityGraph(attributePaths = {"author", "model", "diagram", "session", "replyTo"})
     Optional<AiMessage> findByReplyTo_IdAndRole(UUID replyToMessageId, AiMessageRole role);
 
-    @EntityGraph(attributePaths = {"author", "model", "diagram", "session", "replyTo"})
+    @EntityGraph(attributePaths = {"author", "model", "model.project", "diagram", "diagram.model",
+            "session", "session.project", "replyTo"})
     @Query("select message from AiMessage message where message.id = :id")
     Optional<AiMessage> findDetailedById(UUID id);
 
