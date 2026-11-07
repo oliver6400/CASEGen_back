@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
-    server: { proxy },
-    preview: { proxy },
+    server: { host: true, proxy },
+    preview: { host: true, proxy },
   }
 })

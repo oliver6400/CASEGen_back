@@ -3,6 +3,7 @@
 runtime/
 .env.*
 !.env.example
+!.env.production.example
 
 # Java
 backend/target/

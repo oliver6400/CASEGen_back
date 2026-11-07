@@ -4,16 +4,15 @@ import 'package:provider/provider.dart';
 
 import 'core/config/api_config.dart';
 import 'core/network/api_client.dart';
-import 'core/storage/local_database.dart';
 import 'core/storage/selection_storage.dart';
 import 'core/storage/token_storage.dart';
-import 'features/assistant/assistant_controller.dart';
-import 'features/assistant/assistant_screen.dart';
-import 'features/assistant/local_intent_parser.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
+import 'features/diagram_viewer/diagram_viewer_controller.dart';
+import 'features/diagram_viewer/diagram_viewer_screen.dart';
 import 'features/offline/connectivity_controller.dart';
 import 'features/projects/workspace_controller.dart';
+import 'features/diagram_viewer/services/observation_service.dart';
 import 'services/project_service.dart';
 
 Future<void> main() async {
@@ -33,14 +32,13 @@ Future<void> main() async {
     ProjectService(apiClient),
     SelectionStorage(),
   );
-  final assistantController = AssistantController(
-    const LocalIntentParser(),
-    LocalDatabase.instance,
+  final diagramViewerController = DiagramViewerController(
+    ObservationService(apiClient),
+    tokenStorage,
   );
 
   await authController.restoreSession();
   await connectivityController.initialize();
-  await assistantController.initialize();
 
   runApp(
     MultiProvider(
@@ -48,7 +46,7 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: authController),
         ChangeNotifierProvider.value(value: connectivityController),
         ChangeNotifierProvider.value(value: workspaceController),
-        ChangeNotifierProvider.value(value: assistantController),
+        ChangeNotifierProvider.value(value: diagramViewerController),
       ],
       child: const CasegenMobileApp(),
     ),
@@ -93,7 +91,7 @@ class CasegenMobileApp extends StatelessWidget {
             );
           }
           return auth.isAuthenticated
-              ? const AssistantScreen()
+              ? const DiagramViewerScreen()
               : const LoginScreen();
         },
       ),
