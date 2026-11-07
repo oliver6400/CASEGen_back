@@ -26,6 +26,9 @@ import com.casegen.modeling.repository.DiagramEdgeRepository;
 import com.casegen.modeling.repository.DiagramNodeRepository;
 import com.casegen.modeling.repository.DiagramRepository;
 import com.casegen.modeling.repository.UmlElementRepository;
+import com.casegen.modeling.repository.UmlAssociationEndRepository;
+import com.casegen.modeling.repository.UmlGeneralizationRepository;
+import com.casegen.modeling.repository.UmlRealizationRepository;
 import com.casegen.modeling.repository.UmlModelRepository;
 import com.casegen.modeling.repository.UmlPackageRepository;
 import com.casegen.project.service.ProjectAuthorizationService;
@@ -40,6 +43,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class DiagramService {
 
+    private static final double AUTO_NODE_WIDTH = 310;
+    private static final double AUTO_NODE_HEIGHT = 180;
+    private static final double AUTO_NODE_START_X = 50;
+    private static final double AUTO_NODE_START_Y = 50;
+    private static final double AUTO_NODE_COLUMN_GAP = 70;
+    private static final double AUTO_NODE_ROW_GAP = 70;
+    private static final int AUTO_NODE_COLUMNS = 3;
+
     private static final EnumSet<UmlElementType> EDGE_TYPES = EnumSet.of(
             UmlElementType.ASSOCIATION,
             UmlElementType.GENERALIZATION,
@@ -51,6 +62,9 @@ public class DiagramService {
     private final UmlModelRepository modelRepository;
     private final UmlPackageRepository packageRepository;
     private final UmlElementRepository elementRepository;
+    private final UmlAssociationEndRepository associationEndRepository;
+    private final UmlGeneralizationRepository generalizationRepository;
+    private final UmlRealizationRepository realizationRepository;
     private final ProjectAuthorizationService authorizationService;
     private final RealtimeEventPublisher realtimeEvents;
 
@@ -61,6 +75,9 @@ public class DiagramService {
             UmlModelRepository modelRepository,
             UmlPackageRepository packageRepository,
             UmlElementRepository elementRepository,
+            UmlAssociationEndRepository associationEndRepository,
+            UmlGeneralizationRepository generalizationRepository,
+            UmlRealizationRepository realizationRepository,
             ProjectAuthorizationService authorizationService,
             RealtimeEventPublisher realtimeEvents) {
         this.diagramRepository = diagramRepository;
@@ -69,6 +86,9 @@ public class DiagramService {
         this.modelRepository = modelRepository;
         this.packageRepository = packageRepository;
         this.elementRepository = elementRepository;
+        this.associationEndRepository = associationEndRepository;
+        this.generalizationRepository = generalizationRepository;
+        this.realizationRepository = realizationRepository;
         this.authorizationService = authorizationService;
         this.realtimeEvents = realtimeEvents;
     }
@@ -118,11 +138,120 @@ public class DiagramService {
         Diagram diagram = findDiagramForUpdate(diagramId);
         authorizationService.requireWrite(diagram.getModel().getProject().getId());
         UmlElement element = resolveElement(request.umlElementId(), diagram.getModel().getId());
+        return addNode(diagram, element, request, false);
+    }
+
+    /** Adds a semantic classifier to its proposal diagram using the editor's default grid. */
+    @Transactional
+    public DiagramNodeResponse addClassifierNodeAutoPlaced(UUID diagramId, UUID classifierId) {
+        Diagram diagram = findDiagramForUpdate(diagramId);
+        authorizationService.requireWrite(diagram.getModel().getProject().getId());
+        UmlElement element = resolveElement(classifierId, diagram.getModel().getId());
+        var represented = nodeRepository.findByDiagramIdAndUmlElementId(diagramId, classifierId);
+        if (represented.isPresent()) return toNodeResponse(represented.get());
+
+        int index = nodeRepository.findByDiagramIdOrderByZIndexAscCreatedAtAsc(diagramId).size();
+        int column = index % AUTO_NODE_COLUMNS;
+        int row = index / AUTO_NODE_COLUMNS;
+        var request = new AddDiagramNodeRequest(classifierId,
+                AUTO_NODE_START_X + column * (AUTO_NODE_WIDTH + AUTO_NODE_COLUMN_GAP),
+                AUTO_NODE_START_Y + row * (AUTO_NODE_HEIGHT + AUTO_NODE_ROW_GAP),
+                AUTO_NODE_WIDTH, AUTO_NODE_HEIGHT, index);
+        return addNode(diagram, element, request, true);
+    }
+
+    /** Places an existing semantic relationship when both endpoint classifiers are visible. */
+    @Transactional
+    public DiagramEdgePlacementResult addRelationshipEdgeIfPossible(
+            UUID diagramId, UUID relationshipId) {
+        Diagram diagram = findDiagramForUpdate(diagramId);
+        authorizationService.requireWrite(diagram.getModel().getProject().getId());
+        UmlElement relationship = resolveElement(relationshipId, diagram.getModel().getId());
+        if (!EDGE_TYPES.contains(relationship.getElementType())) {
+            throw error(SemanticErrorCode.INVALID_DIAGRAM_EDGE, HttpStatus.CONFLICT,
+                    "The UML element is not a Class Diagram relationship");
+        }
+        var represented = edgeRepository.findByDiagramIdAndUmlElementId(diagramId, relationshipId);
+        if (represented.isPresent()) {
+            return new DiagramEdgePlacementResult(
+                    DiagramEdgePlacementResult.Status.ALREADY_EXISTS, represented.get().getId());
+        }
+
+        RelationshipEndpoints endpoints = relationshipEndpoints(relationship);
+        var source = nodeRepository.findByDiagramIdAndUmlElementId(diagramId, endpoints.sourceId());
+        var target = nodeRepository.findByDiagramIdAndUmlElementId(diagramId, endpoints.targetId());
+        if (source.isEmpty() || target.isEmpty()) {
+            return new DiagramEdgePlacementResult(
+                    DiagramEdgePlacementResult.Status.ENDPOINT_NOT_VISIBLE, null);
+        }
+
+        int sourceAnchor = nextAvailableAnchor(diagramId, source.get().getId(), DiagramSide.RIGHT);
+        int targetAnchor = nextAvailableAnchor(diagramId, target.get().getId(), DiagramSide.LEFT);
+        DiagramEdgeResponse edge = addEdge(diagramId, new AddDiagramEdgeRequest(
+                relationshipId, source.get().getId(), target.get().getId(),
+                DiagramSide.RIGHT, DiagramSide.LEFT, sourceAnchor, targetAnchor, List.of()));
+        return new DiagramEdgePlacementResult(DiagramEdgePlacementResult.Status.CREATED, edge.id());
+    }
+
+    private RelationshipEndpoints relationshipEndpoints(UmlElement relationship) {
+        return switch (relationship.getElementType()) {
+            case ASSOCIATION -> {
+                var ends = associationEndRepository
+                        .findByAssociationElementIdOrderByMemberOrderAsc(relationship.getId());
+                if (ends.size() != 2) {
+                    throw error(SemanticErrorCode.INVALID_ASSOCIATION_END, HttpStatus.CONFLICT,
+                            "An association must contain exactly two ends");
+                }
+                yield new RelationshipEndpoints(
+                        ends.get(0).getProperty().getTypeClassifier().getElementId(),
+                        ends.get(1).getProperty().getTypeClassifier().getElementId());
+            }
+            case GENERALIZATION -> generalizationRepository.findById(relationship.getId())
+                    .map(value -> new RelationshipEndpoints(
+                            value.getSpecificClassifier().getElementId(),
+                            value.getGeneralClassifier().getElementId()))
+                    .orElseThrow(() -> error(SemanticErrorCode.INVALID_DIAGRAM_EDGE,
+                            HttpStatus.CONFLICT, "Generalization details do not exist"));
+            case REALIZATION -> realizationRepository.findById(relationship.getId())
+                    .map(value -> new RelationshipEndpoints(
+                            value.getClientClassifier().getElementId(),
+                            value.getSupplierClassifier().getElementId()))
+                    .orElseThrow(() -> error(SemanticErrorCode.INVALID_DIAGRAM_EDGE,
+                            HttpStatus.CONFLICT, "Realization details do not exist"));
+            default -> throw error(SemanticErrorCode.INVALID_DIAGRAM_EDGE, HttpStatus.CONFLICT,
+                    "The UML element is not a Class Diagram relationship");
+        };
+    }
+
+    private int nextAvailableAnchor(UUID diagramId, UUID nodeId, DiagramSide side) {
+        var occupied = new java.util.HashSet<Integer>();
+        for (DiagramEdge edge : edgeRepository.findByDiagramIdOrderByCreatedAtAsc(diagramId)) {
+            if (edge.getSourceNode().getId().equals(nodeId) && edge.getSourceSide() == side) {
+                occupied.add(edge.getSourceAnchorIndex());
+            }
+            if (edge.getTargetNode().getId().equals(nodeId) && edge.getTargetSide() == side) {
+                occupied.add(edge.getTargetAnchorIndex());
+            }
+        }
+        int candidate = 0;
+        while (occupied.contains(candidate)) candidate++;
+        return candidate;
+    }
+
+    private record RelationshipEndpoints(UUID sourceId, UUID targetId) { }
+
+    private DiagramNodeResponse addNode(Diagram diagram, UmlElement element,
+            AddDiagramNodeRequest request, boolean idempotent) {
+        UUID diagramId = diagram.getId();
         if (element.getElementType() != UmlElementType.CLASSIFIER) {
             throw error(SemanticErrorCode.INVALID_DIAGRAM_NODE, HttpStatus.CONFLICT,
                     "A Class Diagram node must reference a classifier");
         }
         if (nodeRepository.existsByDiagramIdAndUmlElementId(diagramId, element.getId())) {
+            if (idempotent) {
+                return toNodeResponse(nodeRepository
+                        .findByDiagramIdAndUmlElementId(diagramId, element.getId()).orElseThrow());
+            }
             throw error(SemanticErrorCode.DIAGRAM_ELEMENT_ALREADY_PRESENT, HttpStatus.CONFLICT,
                     "The UML element is already present in this diagram");
         }

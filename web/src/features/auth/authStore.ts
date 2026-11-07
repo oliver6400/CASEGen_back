@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { AuthTokenResponse } from '../../api/apiTypes'
+import { jwtExpirationMs } from './jwtToken'
 
 const STORAGE_KEY = 'casegen.auth.tokens'
 
@@ -41,7 +42,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
       tokenType: 'Bearer',
-      accessTokenExpiresAt: Date.now() + tokens.expiresIn * 1000,
+      accessTokenExpiresAt: jwtExpirationMs(tokens.accessToken)
+        ?? Date.now() + tokens.expiresIn * 1000,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nextTokens))
     set(nextTokens)

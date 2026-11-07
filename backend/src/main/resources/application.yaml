@@ -29,7 +29,7 @@ server:
 
 casegen:
   ai:
-    provider: ${AI_PROVIDER:OLLAMA}
+    provider: ${AI_PROVIDER:GEMINI}
     max-message-length: ${AI_MAX_MESSAGE_LENGTH:8000}
     context-message-limit: ${AI_CONTEXT_MESSAGE_LIMIT:30}
     context-max-chars: ${AI_CONTEXT_MAX_CHARS:24000}
@@ -76,5 +76,5 @@ casegen:
     jwt:
       issuer: casegen
       secret: ${JWT_SECRET}
-      access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:PT15M}
+      access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:PT1H}
       refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:P30D}

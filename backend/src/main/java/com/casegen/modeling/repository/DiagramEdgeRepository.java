@@ -14,6 +14,8 @@ public interface DiagramEdgeRepository extends JpaRepository<DiagramEdge, UUID> 
 
     Optional<DiagramEdge> findByIdAndDiagramId(UUID id, UUID diagramId);
 
+    Optional<DiagramEdge> findByDiagramIdAndUmlElementId(UUID diagramId, UUID umlElementId);
+
     boolean existsByDiagramIdAndUmlElementId(UUID diagramId, UUID umlElementId);
 
     List<DiagramEdge> findByUmlElementId(UUID umlElementId);

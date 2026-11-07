@@ -20,6 +20,8 @@ public interface DiagramNodeRepository extends JpaRepository<DiagramNode, UUID> 
 
     Optional<DiagramNode> findByIdAndDiagramId(UUID id, UUID diagramId);
 
+    Optional<DiagramNode> findByDiagramIdAndUmlElementId(UUID diagramId, UUID umlElementId);
+
     boolean existsByDiagramIdAndUmlElementId(UUID diagramId, UUID umlElementId);
 
     List<DiagramNode> findByUmlElementId(UUID umlElementId);

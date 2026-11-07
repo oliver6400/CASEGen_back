@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { aiChatApi } from '../api/aiChatApi'
 import { aiMessagesKey, appendToNewestPage, chronologicalMessages, createLogicalSend } from '../aiChatState'
 import type { AiSkill, PagedAiMessageResponse, SendAiMessageRequest } from '../types/aiMessage'
-import { useAiChatRealtime } from './useAiChatRealtime'
 
 export function useAiChat({ projectId, sessionId, modelId, diagramId, enabled }: {
   projectId: string
@@ -36,8 +35,6 @@ export function useAiChat({ projectId, sessionId, modelId, diagramId, enabled }:
     },
     onError: (_error, request) => setFailedRequest(request),
   })
-  const realtime = useAiChatRealtime(projectId, sessionId, enabled)
-
   const send = (content: string, skill: AiSkill) => sendMutation.mutate(createLogicalSend(
     content, modelId || undefined, diagramId || undefined, skill))
   const retry = () => { if (failedRequest) sendMutation.mutate(failedRequest) }
@@ -50,6 +47,5 @@ export function useAiChat({ projectId, sessionId, modelId, diagramId, enabled }:
     failedRequest,
     isSending: sendMutation.isPending,
     sendError: sendMutation.error,
-    connected: realtime.connected,
   }
 }
