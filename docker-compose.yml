@@ -35,8 +35,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-casegen_prod_jwt_super_secret_key_at_least_32_chars_2026}
       JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL:-PT15M}
       JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL:-P30D}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost,http://localhost:5173,http://localhost:80}
-      CORS_ALLOWED_ORIGIN_PATTERNS: ${CORS_ALLOWED_ORIGIN_PATTERNS:-http://localhost:[*],http://127.0.0.1:[*],https://*:[*]}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://18.191.25.162,http://ec2-18-191-25-162.us-east-2.compute.amazonaws.com,http://localhost,http://localhost:5173,http://localhost:80}
+      CORS_ALLOWED_ORIGIN_PATTERNS: ${CORS_ALLOWED_ORIGIN_PATTERNS:-http://18.191.25.162:[*],http://*.amazonaws.com:[*],http://localhost:[*],http://127.0.0.1:[*],https://*:[*]}
       AI_PROVIDER: ${AI_PROVIDER:-OLLAMA}
       AI_OLLAMA_BASE_URL: ${AI_OLLAMA_BASE_URL:-http://ollama:11434}
       AI_OLLAMA_MODEL: ${AI_OLLAMA_MODEL:-qwen3:4b}
@@ -47,8 +47,10 @@ services:
       IMAGE_IMPORT_LOCAL_FALLBACK: "true"
       TESSERACT_COMMAND: tesseract
       TESSERACT_LANGUAGE: spa
+      VOSK_MODEL_PATH: /app/runtime/vosk-model-small-es
     volumes:
       - backend_generation:/app/runtime/generation
+      - ./backend/runtime/vosk-model-small-es:/app/runtime/vosk-model-small-es:ro
 
   web:
     build:

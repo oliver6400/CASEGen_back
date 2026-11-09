@@ -18,6 +18,9 @@ class ApiConfig {
       final host = Uri.base.host.isEmpty ? 'localhost' : Uri.base.host;
       return 'http://$host:8080';
     }
+    if (kReleaseMode) {
+      return 'http://18.191.25.162';
+    }
     if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:8080';
     }
