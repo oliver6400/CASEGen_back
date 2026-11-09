@@ -69,6 +69,90 @@ export interface ImageImportConfiguration {
   fallbackLocalAvailable: boolean
 }
 
+export type ImageReconciliationAction = 'CREATE' | 'MAP_TO_EXISTING' | 'SKIP' | 'CONFLICT'
+export type ImageReconciliationElementKind = 'CLASSIFIER' | 'ATTRIBUTE' | 'OPERATION' | 'RELATIONSHIP'
+
+export interface ImageReconciliationCandidate {
+  elementId: string
+  name: string
+  classifierKind: string | null
+  packageId: string | null
+  diagramNodeId: string | null
+}
+
+export interface ImageReconciliationItem {
+  temporaryId: string
+  elementKind: ImageReconciliationElementKind
+  detectedName: string
+  suggestedAction: ImageReconciliationAction
+  decisionRequired: boolean
+  reasonCode: string
+  explanation: string
+  candidates: ImageReconciliationCandidate[]
+  dependsOnTemporaryIds: string[]
+}
+
+export interface ImageReconciliationPreviewRequest {
+  targetModelId: string
+  targetDiagramId: string
+  targetPackageId: string | null
+  expectedModelRevision: number
+  expectedDiagramRevision: number
+  proposal: DetectedClassDiagram
+}
+
+export interface ImageReconciliationPreviewResponse {
+  projectId: string
+  targetModelId: string
+  targetDiagramId: string
+  targetPackageId: string | null
+  modelRevision: number
+  diagramRevision: number
+  items: ImageReconciliationItem[]
+  existingNodes: Array<{
+    nodeId: string
+    umlElementId: string
+    x: number
+    y: number
+    width: number
+    height: number
+    zIndex: number
+  }>
+}
+
+export interface ImageImportExistingConfirmRequest {
+  targetModelId: string
+  targetDiagramId: string
+  targetPackageId: string | null
+  expectedModelRevision: number
+  expectedDiagramRevision: number
+  proposal: DetectedClassDiagram
+  decisions: Array<{
+    temporaryId: string
+    action: ImageReconciliationAction
+    candidateId: string | null
+  }>
+}
+
+export interface ImageImportExistingConfirmResponse {
+  projectId: string
+  modelId: string
+  diagramId: string
+  previousModelRevision: number
+  modelRevision: number
+  previousDiagramRevision: number
+  diagramRevision: number
+  createdIds: Record<string, string>
+  reusedIds: Record<string, string>
+  createdElementCount: number
+  reusedElementCount: number
+  skippedElementCount: number
+  createdNodeCount: number
+  reusedNodeCount: number
+  createdEdgeCount: number
+  reusedEdgeCount: number
+}
+
 export const modelApi = {
   imageImportStatus: async () =>
     (await httpClient.get<ImageImportConfiguration>('/api/image-import/status')).data,
@@ -106,6 +190,14 @@ export const modelApi = {
   confirmImageImport: async (projectId: string, proposal: DetectedClassDiagram) =>
     (await httpClient.post<ImageImportResponse>(
       `/api/projects/${projectId}/image-import/confirm`, proposal,
+    )).data,
+  reconcileImageImport: async (projectId: string, input: ImageReconciliationPreviewRequest) =>
+    (await httpClient.post<ImageReconciliationPreviewResponse>(
+      `/api/projects/${projectId}/image-import/reconcile-preview`, input,
+    )).data,
+  confirmExistingImageImport: async (projectId: string, input: ImageImportExistingConfirmRequest) =>
+    (await httpClient.post<ImageImportExistingConfirmResponse>(
+      `/api/projects/${projectId}/image-import/confirm-existing`, input,
     )).data,
   exportXmi: async (modelId: string, fallbackName: string) => {
     const response = await httpClient.get<Blob>(

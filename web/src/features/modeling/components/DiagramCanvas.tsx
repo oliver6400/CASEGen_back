@@ -1,6 +1,6 @@
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow, useNodesState } from '@xyflow/react'
 import type { Edge, Node, ReactFlowInstance } from '@xyflow/react'
-import { useEffect, useMemo, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react'
 import { umlToFlow } from '../mapper/umlToFlow'
 import type { UmlNodeData } from '../mapper/umlToFlow'
 import { UmlClassNode } from '../nodes/UmlClassNode'
@@ -13,14 +13,17 @@ import type { ClassDiagram, DiagramNode, UmlClassifierView, UmlRelationships } f
 import type { CollaborationActivity, PresenceParticipant } from '../api/collaborationApi'
 import type { CollaborationHighlight } from '../hooks/useRealtimeDiagram'
 import { CollaborationPanel } from './CollaborationPanel'
+import { exportDiagramImage } from '../lib/diagramExport'
+import type { DiagramExportFormat } from '../lib/diagramExport'
 
 const nodeTypes = { umlClass: UmlClassNode, umlInterface: UmlInterfaceNode }
 const edgeTypes = { association: AssociationEdge, generalization: GeneralizationEdge, realization: RealizationEdge }
 
-export function DiagramCanvas({
-  classifiers, relationships, diagram, canEdit, fitViewRequest, onGeometryChange,
-  participants, activity, highlights, currentUserId,
-}: {
+export interface DiagramCanvasHandle {
+  exportImage: (format: DiagramExportFormat, fileName: string) => Promise<void>
+}
+
+export const DiagramCanvas = forwardRef<DiagramCanvasHandle, {
   classifiers: UmlClassifierView[]
   relationships: UmlRelationships
   diagram: ClassDiagram
@@ -31,7 +34,10 @@ export function DiagramCanvas({
   activity: CollaborationActivity[]
   highlights: CollaborationHighlight[]
   currentUserId: string | null
-}) {
+}>(function DiagramCanvas({
+  classifiers, relationships, diagram, canEdit, fitViewRequest, onGeometryChange,
+  participants, activity, highlights, currentUserId,
+}, ref) {
   const selectedElementId = useEditorStore((state) => state.selectedElementId)
   const selectElement = useEditorStore((state) => state.selectElement)
   const projection = useMemo(
@@ -41,6 +47,7 @@ export function DiagramCanvas({
   const [nodes, setNodes, onNodesChange] = useNodesState(projection.nodes)
   const edges = useMemo<Edge[]>(() => projection.edges, [projection.edges])
   const flowInstance = useRef<ReactFlowInstance<(typeof projection.nodes)[number], Edge> | null>(null)
+  const canvas = useRef<HTMLElement | null>(null)
   const previousFitRequest = useRef(fitViewRequest)
 
   useEffect(() => setNodes(projection.nodes), [projection.nodes, setNodes])
@@ -52,9 +59,17 @@ export function DiagramCanvas({
     }
   }, [fitViewRequest])
 
+  useImperativeHandle(ref, () => ({
+    exportImage: async (format, fileName) => {
+      const viewport = canvas.current?.querySelector<HTMLElement>('.react-flow__viewport')
+      if (!viewport) throw new Error('No se pudo preparar el diagrama para exportarlo.')
+      await exportDiagramImage({ viewport, nodes: diagram.nodes, name: fileName, format })
+    },
+  }), [diagram.nodes])
+
   return (
-    <section className="workspace-canvas relative min-h-0 overflow-hidden bg-[var(--surface-secondary)]" aria-label="Diagrama UML">
-      <CollaborationPanel participants={participants} activity={activity} />
+    <section ref={canvas} className="workspace-canvas relative min-h-0 overflow-hidden bg-[var(--surface-secondary)]" aria-label="Diagrama UML">
+      <div data-diagram-export-ignore><CollaborationPanel participants={participants} activity={activity} /></div>
       {diagram.nodes.length === 0 && <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-sm text-slate-500">Este diagrama aún no contiene clases ni interfaces.</div>}
       <ReactFlow
         nodes={nodes}
@@ -78,7 +93,7 @@ export function DiagramCanvas({
       </ReactFlow>
     </section>
   )
-}
+})
 
 function commitDraggedGeometry(
   node: Node<UmlNodeData>,

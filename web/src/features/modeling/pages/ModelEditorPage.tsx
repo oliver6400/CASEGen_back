@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/apiError'
@@ -15,11 +15,13 @@ import { relationshipApi } from '../api/relationshipApi'
 import { modelApi } from '../api/modelApi'
 import { loadSemanticModel } from '../api/semanticModelApi'
 import { DiagramCanvas } from '../components/DiagramCanvas'
+import type { DiagramCanvasHandle } from '../components/DiagramCanvas'
 import { ModelExplorer } from '../components/ModelExplorer'
 import { ModelValidationPanel } from '../components/ModelValidationPanel'
 import { ModelingToolbar, type RelationshipTool } from '../components/ModelingToolbar'
 import { PropertiesPanel } from '../components/PropertiesPanel'
 import { DiagramToolbox } from '../components/DiagramToolbox'
+import { ExistingDiagramImageImportDialog } from '../components/ExistingDiagramImageImportDialog'
 import { ResizableSidePanel } from '../components/ResizableSidePanel'
 import { allocateEdgeLayout, reallocateEdgeLayout } from '../mapper/diagramRouting'
 import { useWorkspaceStore } from '../store/workspaceStore'
@@ -28,6 +30,7 @@ import { aiSessionApi } from '../../ai-sessions/api/aiSessionApi'
 import { canAccessAiSessions, currentSessionKey } from '../../ai-sessions/aiSessionUi'
 import { AiCollaborativeDrawer } from '../../ai-chat/components/AiCollaborativeDrawer'
 import type { ClassDiagram, DiagramNode, UmlAggregationKind, UmlClassifierKind, UmlClassifierView, UmlRelationships } from '../types/uml'
+import type { DiagramExportFormat } from '../lib/diagramExport'
 
 const NODE_WIDTH = 310
 const NODE_HEIGHT = 180
@@ -41,6 +44,8 @@ export function ModelEditorPage() {
   const presenceActivity = useEditorStore((state) => state.presenceActivity)
   const [fitViewRequest, setFitViewRequest] = useState(0)
   const [aiOpen, setAiOpen] = useState(false)
+  const [imageImportOpen, setImageImportOpen] = useState(false)
+  const diagramCanvas = useRef<DiagramCanvasHandle>(null)
   const workspace = useWorkspaceStore()
   const openAppearance = useAppearanceStore((state) => state.openPanel)
   const permission = useProjectPermission(projectId)
@@ -164,8 +169,17 @@ export function ModelEditorPage() {
       URL.revokeObjectURL(url)
     },
   })
+  const exportVisual = useMutation({
+    mutationFn: async (format: DiagramExportFormat) => {
+      if (!diagram.data || !semanticModel.data || !diagramCanvas.current) {
+        throw new Error('No hay un diagrama disponible para exportar.')
+      }
+      await diagramCanvas.current.exportImage(
+        format, `${semanticModel.data.model.name}-${diagram.data.name}`)
+    },
+  })
   const onGeometryChange = useCallback((node: DiagramNode, geometry: DiagramGeometryInput) => updateGeometry.mutate({ node, geometry }), [updateGeometry])
-  const operationError = useMemo(() => [createDiagram.error, createClassifier.error, addExisting.error, syncRelationships.error, createRelationship.error, updateGeometry.error, exportXmi.error].find(Boolean), [addExisting.error, createClassifier.error, createDiagram.error, createRelationship.error, exportXmi.error, syncRelationships.error, updateGeometry.error])
+  const operationError = useMemo(() => [createDiagram.error, createClassifier.error, addExisting.error, syncRelationships.error, createRelationship.error, updateGeometry.error, exportXmi.error, exportVisual.error].find(Boolean), [addExisting.error, createClassifier.error, createDiagram.error, createRelationship.error, exportVisual.error, exportXmi.error, syncRelationships.error, updateGeometry.error])
 
   if (semanticModel.isPending || diagrams.isPending || project.isPending) return <PageState title="Cargando modelo…" />
   if (project.isError) return <PageState title="No se pudo cargar el proyecto" detail={getApiErrorMessage(project.error)} />
@@ -200,16 +214,22 @@ export function ModelEditorPage() {
     workspace.rightMode !== 'HIDDEN' ? workspace.rightMode === 'COLLAPSED' ? '44px' : `${workspace.rightWidth}px` : null].filter(Boolean).join(' ')
   const focusMode = workspace.restoreSnapshot !== null
   return <main className="app-themed workspace-layout workspace-surface relative grid h-screen grid-rows-[auto_minmax(0,1fr)] overflow-hidden" style={{ gridTemplateColumns: gridColumns }}>
-    <ModelingToolbar projectId={projectId} projectName={project.data.name} modelName={model.name} semanticRevision={model.revision} diagram={diagram.data} canEdit={canEdit} isCreating={busy} onAddExisting={() => addExisting.mutate()} onSyncRelationships={() => syncRelationships.mutate()} onCreateClassifier={(kind) => createClassifier.mutate(kind)} onCreateRelationship={(tool) => createRelationship.mutate(tool)} onToggleToolbox={() => workspace.setToolboxVisible(!workspace.toolboxVisible)} toolboxVisible={workspace.toolboxVisible} leftPanelHidden={workspace.leftMode === 'HIDDEN'} rightPanelHidden={workspace.rightMode === 'HIDDEN'} onShowLeftPanel={() => workspace.setLeftMode('VISIBLE')} onShowRightPanel={() => workspace.setRightMode('VISIBLE')} onFocusDiagram={workspace.focusDiagram} onRestorePanels={workspace.restorePanels} focusMode={focusMode} onRefresh={() => { void semanticModel.refetch(); void diagram.refetch(); void diagrams.refetch() }} onFitView={() => setFitViewRequest((value) => value + 1)} onExportXmi={() => exportXmi.mutate()} isExportingXmi={exportXmi.isPending} showAi={canAccessAi} aiOpen={aiOpen} onToggleAi={() => setAiOpen((value) => !value)} />
+    <ModelingToolbar projectId={projectId} projectName={project.data.name} modelName={model.name} semanticRevision={model.revision} diagram={diagram.data} canEdit={canEdit} isCreating={busy} onAddExisting={() => addExisting.mutate()} onSyncRelationships={() => syncRelationships.mutate()} onCreateClassifier={(kind) => createClassifier.mutate(kind)} onCreateRelationship={(tool) => createRelationship.mutate(tool)} onToggleToolbox={() => workspace.setToolboxVisible(!workspace.toolboxVisible)} onOpenImageImport={() => setImageImportOpen(true)} toolboxVisible={workspace.toolboxVisible} leftPanelHidden={workspace.leftMode === 'HIDDEN'} rightPanelHidden={workspace.rightMode === 'HIDDEN'} onShowLeftPanel={() => workspace.setLeftMode('VISIBLE')} onShowRightPanel={() => workspace.setRightMode('VISIBLE')} onFocusDiagram={workspace.focusDiagram} onRestorePanels={workspace.restorePanels} focusMode={focusMode} onRefresh={() => { void semanticModel.refetch(); void diagram.refetch(); void diagrams.refetch() }} onFitView={() => setFitViewRequest((value) => value + 1)} onExportXmi={() => exportXmi.mutate()} isExportingXmi={exportXmi.isPending} onExportVisual={(format) => exportVisual.mutate(format)} exportingVisual={exportVisual.isPending ? exportVisual.variables ?? null : null} showAi={canAccessAi} aiOpen={aiOpen} onToggleAi={() => setAiOpen((value) => !value)} />
     {workspace.leftMode !== 'HIDDEN' && <ResizableSidePanel side="LEFT" label="Diagramas" mode={workspace.leftMode} width={workspace.leftWidth} onResize={workspace.setLeftWidth} onModeChange={workspace.setLeftMode}><ModelExplorer classifiers={classifiers} packages={semanticModel.data.packages} diagrams={diagrams.data} activeDiagramId={diagram.data.id} canEdit={canEdit} isCreating={createDiagram.isPending} onSelectDiagram={selectDiagram} onCreateDiagram={() => createDiagram.mutate()} validationPanel={<ModelValidationPanel modelId={modelId} revision={model.revision} canEdit={canEdit} onLocate={(id) => {
       const association = relationships.associations.find((item) => item.ends.some((end) => end.propertyId === id))
       useEditorStore.getState().selectElement(association?.id ?? id)
     }} />} /></ResizableSidePanel>}
-    <DiagramCanvas key={diagram.data.id} classifiers={classifiers} relationships={relationships} diagram={diagram.data} canEdit={canEdit} fitViewRequest={fitViewRequest} onGeometryChange={onGeometryChange} participants={collaboration.participants} activity={collaboration.activity} highlights={collaboration.highlights} currentUserId={currentUser.data?.id ?? null} />
+    <DiagramCanvas ref={diagramCanvas} key={diagram.data.id} classifiers={classifiers} relationships={relationships} diagram={diagram.data} canEdit={canEdit} fitViewRequest={fitViewRequest} onGeometryChange={onGeometryChange} participants={collaboration.participants} activity={collaboration.activity} highlights={collaboration.highlights} currentUserId={currentUser.data?.id ?? null} />
     {workspace.toolboxVisible && <DiagramToolbox disabled={busy} onClose={() => workspace.setToolboxVisible(false)} onCreateClassifier={(kind) => createClassifier.mutate(kind)} onCreateRelationship={(tool) => createRelationship.mutate(tool)} />}
     {workspace.rightMode !== 'HIDDEN' && <ResizableSidePanel side="RIGHT" label="Propiedades" mode={workspace.rightMode} width={workspace.rightWidth} onResize={workspace.setRightWidth} onModeChange={workspace.setRightMode}><PropertiesPanel modelId={modelId} diagram={diagram.data} classifiers={classifiers} relationships={relationships} canEdit={canEdit} onSemanticChange={refreshSemantic} onDiagramChange={refreshDiagram} /></ResizableSidePanel>}
     {canAccessAi && <AiCollaborativeDrawer open={aiOpen} onClose={() => setAiOpen(false)} projectId={projectId} session={currentAiSession.data} modelId={modelId} modelName={model.name} diagramId={diagram.data.id} diagramName={diagram.data.name} canEdit={canEdit} />}
-    {operationError && operationError.message !== 'Creación cancelada.' && <div className="absolute bottom-5 left-1/2 z-50 w-[min(92vw,560px)] -translate-x-1/2"><DismissibleAlert key={`${operationError.message}-${Math.max(createDiagram.submittedAt, createClassifier.submittedAt, addExisting.submittedAt, syncRelationships.submittedAt, createRelationship.submittedAt, updateGeometry.submittedAt, exportXmi.submittedAt)}`} variant="ERROR">{friendlyOperationError(operationError)}</DismissibleAlert></div>}
+    {canEdit && imageImportOpen && <ExistingDiagramImageImportDialog projectId={projectId}
+      modelId={modelId} diagramId={diagram.data.id} targetPackageId={diagram.data.ownerPackageId}
+      modelRevision={model.revision} diagramRevision={diagram.data.revision}
+      onClose={() => setImageImportOpen(false)}
+      onRefreshContext={async () => { await Promise.all([semanticModel.refetch(), diagram.refetch()]) }}
+      onConfirmed={refreshSemantic} />}
+    {operationError && operationError.message !== 'Creación cancelada.' && <div className="absolute bottom-5 left-1/2 z-50 w-[min(92vw,560px)] -translate-x-1/2"><DismissibleAlert key={`${operationError.message}-${Math.max(createDiagram.submittedAt, createClassifier.submittedAt, addExisting.submittedAt, syncRelationships.submittedAt, createRelationship.submittedAt, updateGeometry.submittedAt, exportXmi.submittedAt, exportVisual.submittedAt)}`} variant="ERROR">{friendlyOperationError(operationError)}</DismissibleAlert></div>}
   </main>
 }
 

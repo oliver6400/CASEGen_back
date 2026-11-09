@@ -276,9 +276,12 @@ class AiContextBuilderTest {
 
     private AiContextBuilder builder(int historyLimit, int maxMessage, int maxContext) {
         AiProviderProperties properties = new AiProviderProperties(
-                AiProviderProperties.Provider.OLLAMA, maxMessage, historyLimit, maxContext,
+                AiProviderProperties.Provider.OLLAMA, AiProviderProperties.Provider.OLLAMA,
+                maxMessage, historyLimit, maxContext,
                 new AiProviderProperties.Ollama("http://localhost", "model", Duration.ofSeconds(1)),
-                new AiProviderProperties.Gemini("", "model", "http://localhost", Duration.ofSeconds(1)));
+                new AiProviderProperties.Gemini("", "model", "http://localhost", Duration.ofSeconds(1)),
+                new AiProviderProperties.OpenAi("", "model", "http://localhost", Duration.ofSeconds(1),
+                        "medium"));
         return new AiContextBuilder(projects, sessions, models, diagrams, messages, umlSummary, properties);
     }
 

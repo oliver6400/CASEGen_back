@@ -382,8 +382,11 @@ class AiMessageServiceTest {
     }
 
     private AiProviderProperties properties() {
-        return new AiProviderProperties(AiProviderProperties.Provider.OLLAMA, 100, 30, 24000,
+        return new AiProviderProperties(AiProviderProperties.Provider.OLLAMA,
+                AiProviderProperties.Provider.OLLAMA, 100, 30, 24000,
                 new AiProviderProperties.Ollama("http://localhost", "model", Duration.ofSeconds(1)),
-                new AiProviderProperties.Gemini("", "model", "http://localhost", Duration.ofSeconds(1)));
+                new AiProviderProperties.Gemini("", "model", "http://localhost", Duration.ofSeconds(1)),
+                new AiProviderProperties.OpenAi("", "model", "http://localhost", Duration.ofSeconds(1),
+                        "medium"));
     }
 }

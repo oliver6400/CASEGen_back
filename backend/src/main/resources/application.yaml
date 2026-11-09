@@ -34,7 +34,8 @@ casegen:
     # Override this with VOSK_MODEL_PATH in the local environment.
     model-path: ${VOSK_MODEL_PATH:runtime/vosk-model-small-es}
   ai:
-    provider: ${AI_PROVIDER:GEMINI}
+    provider: ${AI_PROVIDER:OPENAI}
+    fallback-provider: ${AI_FALLBACK_PROVIDER:OLLAMA}
     max-message-length: ${AI_MAX_MESSAGE_LENGTH:8000}
     context-message-limit: ${AI_CONTEXT_MESSAGE_LIMIT:30}
     context-max-chars: ${AI_CONTEXT_MAX_CHARS:24000}
@@ -47,12 +48,18 @@ casegen:
       model: ${GEMINI_MODEL:gemini-2.5-flash}
       base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com/v1beta}
       timeout: ${GEMINI_TIMEOUT:PT2M}
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      model: ${OPENAI_MODEL:gpt-6-luna}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+      timeout: ${OPENAI_TIMEOUT:PT2M}
+      reasoning-effort: ${OPENAI_REASONING_EFFORT:medium}
   image-import:
-    provider: ${IMAGE_IMPORT_PROVIDER:GEMINI}
+    provider: ${IMAGE_IMPORT_PROVIDER:OPENAI}
     max-bytes: ${IMAGE_IMPORT_MAX_BYTES:10485760}
     local-fallback-enabled: ${IMAGE_IMPORT_LOCAL_FALLBACK:true}
-    api-key: ${IMAGE_IMPORT_API_KEY:}
-    model: ${IMAGE_IMPORT_MODEL:gpt-4o-mini}
+    api-key: ${IMAGE_IMPORT_API_KEY:${OPENAI_API_KEY:}}
+    model: ${IMAGE_IMPORT_MODEL:${OPENAI_MODEL:gpt-6-luna}}
     api-url: ${IMAGE_IMPORT_API_URL:https://api.openai.com/v1/responses}
     gemini:
       api-key: ${GEMINI_API_KEY:}

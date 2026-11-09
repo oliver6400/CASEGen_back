@@ -25,9 +25,9 @@ class SelectedImageAnalysisProviderTest {
     }
 
     @Test
-    void geminiIsDefault() {
-        when(gemini.provider()).thenReturn("GEMINI");
-        assertEquals("GEMINI", selected("", true).provider());
+    void openAiIsDefault() {
+        when(openAi.provider()).thenReturn("OPENAI");
+        assertEquals("OPENAI", selected("", true).provider());
     }
 
     @Test
@@ -89,6 +89,20 @@ class SelectedImageAnalysisProviderTest {
 
         assertEquals(true, selected.fallbackLocalAvailable());
         assertEquals("GEMINI_LOCAL_FALLBACK", result.warnings().getLast().code());
+    }
+
+    @Test
+    void unavailableOpenAiUsesLocalFallbackWhenEnabled() {
+        when(openAi.provider()).thenReturn("OPENAI");
+        when(local.configured()).thenReturn(true);
+        when(openAi.analyze(any(), anyString(), anyString())).thenThrow(new ImageImportException(
+                "IMAGE_ANALYSIS_UNAVAILABLE", HttpStatus.BAD_GATEWAY, "temporary"));
+        when(local.analyze(any(), anyString(), anyString())).thenReturn(diagram());
+
+        DetectedClassDiagram result = selected("OPENAI", true)
+                .analyze(new byte[] {1}, "image/png", "uml.png");
+
+        assertEquals("OPENAI_LOCAL_FALLBACK", result.warnings().getLast().code());
     }
 
     @Test

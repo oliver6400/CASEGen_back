@@ -3,6 +3,7 @@ package com.casegen.generation.logical;
 import static org.junit.jupiter.api.Assertions.*;
 import com.casegen.generation.logical.dto.LogicalModelDtos.*;
 import com.casegen.generation.logical.service.LogicalModelTransformer;
+import com.casegen.generation.logical.service.PostgresIdentifierValidator;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
@@ -46,8 +47,8 @@ class LogicalModelTransformerTest {
         assertEquals(List.of("student_id","course_id"),join.primaryKey().columns());assertTrue(join.columns().stream().noneMatch(Column::nullable));
     }
     @Test void compositionReferencesWholeWithCascade() {
-        Fixture f=new Fixture();String whole=f.entity("Order"),part=f.entity("OrderItem");f.association(whole,part,1,1,1,null,"COMPOSITE");
-        Plan p=run(f);assertTrue(p.valid());assertEquals("CASCADE",table(p,"order_item").foreignKeys().getFirst().onDelete());assertEquals("order",table(p,"order_item").foreignKeys().getFirst().referencedTable());
+        Fixture f=new Fixture();String whole=f.entity("PurchaseOrder"),part=f.entity("OrderItem");f.association(whole,part,1,1,1,null,"COMPOSITE");
+        Plan p=run(f);assertTrue(p.valid());assertEquals("CASCADE",table(p,"order_item").foreignKeys().getFirst().onDelete());assertEquals("purchase_order",table(p,"order_item").foreignKeys().getFirst().referencedTable());
     }
     @Test void joinedInheritanceChildPrimaryKeyIsForeignKeyAndInterfaceHasNoTable() {
         Fixture f=new Fixture();String parent=f.entity("Person"),child=f.entity("Customer");f.generalization(child,parent);f.interfaceClassifier("Identifiable");
@@ -88,10 +89,51 @@ class LogicalModelTransformerTest {
         Fixture f=new Fixture();f.entity("Customer");JsonNode semantic=f.semantic(json),profile=f.profile(json);String before=semantic.toString()+profile;
         assertEquals(transformer.transform(semantic,profile),transformer.transform(semantic,profile));assertEquals(before,semantic.toString()+profile);
     }
+    @Test void postgresReservedTableNamesAreRejectedBeforeGeneration() {
+        Fixture checkFixture=new Fixture();String check=checkFixture.entity("Check");String before=checkFixture.semantic(json).toString();
+        Plan checkPlan=run(checkFixture);assertFalse(checkPlan.valid());assertTrue(checkPlan.tables().isEmpty());
+        Issue issue=issue(checkPlan,"POSTGRES_RESERVED_IDENTIFIER");
+        assertTrue(issue.message().contains("element=Check"));assertTrue(issue.message().contains("sqlName=check"));
+        assertTrue(issue.message().contains("identifierType=TABLE"));assertTrue(issue.message().contains("check_table"));
+        assertEquals(check,issue.sourceElementId());assertEquals(before,checkFixture.semantic(json).toString());
+
+        Fixture orderFixture=new Fixture();orderFixture.entity("Order");assertIssue(run(orderFixture),"POSTGRES_RESERVED_IDENTIFIER");
+    }
+    @Test void explicitSafeAliasesKeepReservedUmlNamesValid() {
+        Fixture f=new Fixture();String check=f.entity("Check"),order=f.entity("Order");
+        f.tableName(check,"payment_check");f.tableName(order,"sales_order");
+        Plan plan=run(f);assertTrue(plan.valid(),plan.issues().toString());
+        assertNotNull(table(plan,"payment_check"));assertNotNull(table(plan,"sales_order"));
+    }
+    @Test void reservedChecksAreCaseInsensitiveAndReservedColumnsAreRejected() {
+        assertTrue(PostgresIdentifierValidator.isReserved("CHECK"));assertTrue(PostgresIdentifierValidator.isReserved("oRdEr"));
+        Fixture f=new Fixture();String entity=f.entity("Payment");String property=f.property(entity,"status","STRING",1,1);
+        Map<String,Object> config=new HashMap<>();config.put("idPropertyId",f.idProperty(entity));
+        config.put("properties",Map.of(property,Map.of("columnName","CHECK")));f.mappingConfig(entity,config);
+        Plan plan=run(f);Issue issue=issue(plan,"POSTGRES_RESERVED_IDENTIFIER");
+        assertFalse(plan.valid());assertTrue(issue.message().contains("identifierType=COLUMN"));
+    }
+    @Test void reservedJoinTableAndConfigurableForeignKeyAreRejected() {
+        Fixture join=new Fixture();String a=join.entity("Student"),b=join.entity("Course");String joinId=join.association(a,b,0,null,0,null,"NONE");
+        join.associationConfig(joinId,Map.of("joinTableName","ORDER"));assertIssue(run(join),"POSTGRES_RESERVED_IDENTIFIER");
+
+        Fixture fk=new Fixture();String customer=fk.entity("Customer"),sale=fk.entity("Sale");String association=fk.association(customer,sale,1,1,0,null,"NONE");
+        fk.associationConfig(association,Map.of("fkColumnName","CHECK"));assertIssue(run(fk),"POSTGRES_RESERVED_IDENTIFIER");
+    }
+    @Test void validatorCoversReservedConstraintAndIndexNames() {
+        String source=UUID.randomUUID().toString();
+        Table table=new Table("safe_table",source,null,List.of(new Column("id",source,"UUID",false,1)),
+                new Key("PRIMARY",List.of("id"),source),List.of(),List.of(),
+                List.of(new Index("ORDER",List.of("id"),false,source)),List.of());
+        List<Issue> issues=PostgresIdentifierValidator.validate(List.of(table),ignored -> "SafeElement");
+        assertTrue(issues.stream().anyMatch(i->i.message().contains("identifierType=PRIMARY_KEY_CONSTRAINT")));
+        assertTrue(issues.stream().anyMatch(i->i.message().contains("identifierType=INDEX")));
+    }
     private Plan run(Fixture f) { return transformer.transform(f.semantic(json),f.profile(json)); }
     private Table table(Plan p,String name) { return p.tables().stream().filter(t->t.name().equals(name)).findFirst().orElseThrow(); }
     private Column column(Table t,String name) { return t.columns().stream().filter(c->c.name().equals(name)).findFirst().orElseThrow(); }
     private void assertIssue(Plan p,String code) { assertTrue(p.issues().stream().anyMatch(i->i.code().equals(code)),p.issues().toString()); }
+    private Issue issue(Plan p,String code) { return p.issues().stream().filter(i->i.code().equals(code)).findFirst().orElseThrow(); }
 
     static final class Fixture {
         final List<Map<String,Object>> elements=new ArrayList<>(),classifiers=new ArrayList<>(),properties=new ArrayList<>(),mappingRows=new ArrayList<>(),associations=new ArrayList<>(),ends=new ArrayList<>(),generalizations=new ArrayList<>();
@@ -117,6 +159,7 @@ class LogicalModelTransformerTest {
         Map<String,Object> propertyRow(String id) { return properties.stream().filter(p->id.equals(p.get("element_id"))).findFirst().orElseThrow(); }
         Map<String,Object> mapping(String id) { return mappingRows.stream().filter(p->id.equals(p.get("umlElementId"))).findFirst().orElseThrow(); }
         void mappingConfig(String id,Map<String,Object> config) { mapping(id).put("configJson",config); }
+        void tableName(String id,String tableName) { Map<String,Object> config=new HashMap<>((Map<String,Object>)mapping(id).get("configJson"));config.put("tableName",tableName);mappingConfig(id,config); }
         void associationConfig(String id,Map<String,Object> config) { associationConfigs.put(id,config); }
         JsonNode semantic(JsonMapper json) { return json.valueToTree(Map.of("schemaVersion",1,"elements",elements,"classifiers",classifiers,"properties",properties,"associations",associations,"associationEnds",ends,"generalizations",generalizations)); }
         JsonNode profile(JsonMapper json) { return json.valueToTree(Map.of("profile",Map.of("target","SPRING_BOOT","database","POSTGRESQL","configJson",Map.of("associations",associationConfigs)),"mappings",mappingRows)); }

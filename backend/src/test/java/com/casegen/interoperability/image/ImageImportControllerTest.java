@@ -22,12 +22,17 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class ImageImportControllerTest {
     private ImageImportService service;
+    private ImageImportReconciliationPreviewService reconciliationPreview;
+    private ImageImportExistingConfirmationService existingConfirmation;
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
         service = mock(ImageImportService.class);
-        mvc = MockMvcBuilders.standaloneSetup(new ImageImportController(service))
+        reconciliationPreview = mock(ImageImportReconciliationPreviewService.class);
+        existingConfirmation = mock(ImageImportExistingConfirmationService.class);
+        mvc = MockMvcBuilders.standaloneSetup(
+                        new ImageImportController(service, reconciliationPreview, existingConfirmation))
                 .setControllerAdvice(new ImageImportExceptionHandler()).build();
     }
 
@@ -82,6 +87,59 @@ class ImageImportControllerTest {
                 .andExpect(jsonPath("$.localOcrAvailable").value(false))
                 .andExpect(jsonPath("$.fallbackLocalAvailable").value(false))
                 .andExpect(jsonPath("$.apiKey").doesNotExist());
+    }
+
+    @Test
+    void reconciliationPreviewUsesSeparateEndpoint() throws Exception {
+        UUID projectId = UUID.randomUUID();
+        UUID modelId = UUID.randomUUID();
+        UUID diagramId = UUID.randomUUID();
+        var response = new ImageImportReconciliationPreviewResponse(projectId, modelId, diagramId,
+                4, 7, List.of(), List.of());
+        when(reconciliationPreview.preview(eq(projectId), any())).thenReturn(response);
+
+        mvc.perform(post("/api/projects/{projectId}/image-import/reconcile-preview", projectId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"targetModelId":"%s","targetDiagramId":"%s",
+                                "expectedModelRevision":4,"expectedDiagramRevision":7,
+                                "proposal":{"suggestedModelName":"Ventas","detectedClassifiers":[],
+                                "detectedAttributes":[],"detectedOperations":[],
+                                "detectedRelationships":[],"warnings":[],"confidence":0.9}}
+                                """.formatted(modelId, diagramId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.targetModelId").value(modelId.toString()))
+                .andExpect(jsonPath("$.modelRevision").value(4))
+                .andExpect(jsonPath("$.diagramRevision").value(7));
+    }
+
+    @Test
+    void existingDiagramConfirmationUsesDedicatedEndpoint() throws Exception {
+        UUID projectId = UUID.randomUUID();
+        UUID modelId = UUID.randomUUID();
+        UUID diagramId = UUID.randomUUID();
+        UUID createdId = UUID.randomUUID();
+        when(existingConfirmation.confirm(eq(projectId), any())).thenReturn(
+                new ImageImportExistingConfirmResponse(projectId, modelId, diagramId,
+                        4, 5, 7, 8, java.util.Map.of("c1", createdId), java.util.Map.of(),
+                        1, 0, 0, 1, 0, 0, 0));
+
+        mvc.perform(post("/api/projects/{projectId}/image-import/confirm-existing", projectId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"targetModelId":"%s","targetDiagramId":"%s",
+                                "expectedModelRevision":4,"expectedDiagramRevision":7,
+                                "proposal":{"suggestedModelName":"Ventas",
+                                "detectedClassifiers":[{"id":"c1","name":"Producto",
+                                "kind":"CLASS","visibility":"PUBLIC","confidence":0.9}],
+                                "detectedAttributes":[],"detectedOperations":[],
+                                "detectedRelationships":[],"warnings":[],"confidence":0.9},
+                                "decisions":[{"temporaryId":"c1","action":"CREATE"}]}
+                                """.formatted(modelId, diagramId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.modelId").value(modelId.toString()))
+                .andExpect(jsonPath("$.createdIds.c1").value(createdId.toString()))
+                .andExpect(jsonPath("$.createdElementCount").value(1));
     }
 
     private DetectedClassDiagram proposal() {

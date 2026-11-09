@@ -55,6 +55,29 @@ class GenerationServiceTest {
     }
 
     @Test
+    void invalidLogicalModelIsRejectedBeforeGenerationStarts() {
+        GenerationRunRepository runs=mock(GenerationRunRepository.class);
+        LogicalModelService logical=mock(LogicalModelService.class);
+        ProjectAuthorizationService authorization=mock(ProjectAuthorizationService.class);
+        SpringBackendRenderer renderer=mock(SpringBackendRenderer.class);
+        IsolatedPostgresVerifier postgres=mock(IsolatedPostgresVerifier.class);
+        UUID logicalId=UUID.randomUUID(),projectId=UUID.randomUUID();
+        var source=new GenerationRunRepository.Source(logicalId,UUID.randomUUID(),UUID.randomUUID(),projectId,
+                UUID.randomUUID(),"Model",3,"INVALID");
+        when(runs.source(logicalId)).thenReturn(Optional.of(source));
+        when(authorization.requireGenerate(projectId)).thenReturn(mock(User.class));
+        var service=new GenerationService(runs,logical,authorization,renderer,postgres,Runnable::run,
+                "target/generation-unit",Duration.ofSeconds(1));
+
+        ResponseStatusException error=assertThrows(ResponseStatusException.class,
+                ()->service.generate(logicalId));
+
+        assertEquals(409,error.getStatusCode().value());
+        verifyNoInteractions(logical,renderer,postgres);
+        verify(runs,never()).create(any(),any(),any(),any());
+    }
+
+    @Test
     void downloadRequiresSuccessfulMatchingArtifactAndGeneratePermission(@TempDir Path runtime)throws Exception {
         GenerationRunRepository runs=mock(GenerationRunRepository.class);ProjectAuthorizationService authorization=mock(ProjectAuthorizationService.class);
         UUID runId=UUID.randomUUID(),artifactId=UUID.randomUUID(),projectId=UUID.randomUUID();Path file=runtime.resolve(runId+"/artifacts/backend.zip");Files.createDirectories(file.getParent());Files.writeString(file,"zip-content");

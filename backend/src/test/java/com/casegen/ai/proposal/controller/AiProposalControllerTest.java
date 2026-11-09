@@ -158,6 +158,20 @@ class AiProposalControllerTest {
     }
 
     @Test
+    void reusedClientBatchIdIsControlled409InsteadOf500() throws Exception {
+        when(batchCreation.create(any())).thenThrow(new AiProposalException(
+                AiProposalErrorCode.CLIENT_BATCH_ID_REUSED,
+                "clientBatchId is already associated with another request"));
+
+        mvc.perform(post("/api/projects/{projectId}/ai/sessions/{sessionId}/messages/{messageId}/proposal-batches",
+                        projectId, sessionId, messageId).with(jwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"clientBatchId\":\"" + UUID.randomUUID() + "\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CLIENT_BATCH_ID_REUSED"));
+    }
+
+    @Test
     void anonymousIsUnauthorized() throws Exception {
         mvc.perform(get(listPath())).andExpect(status().isUnauthorized());
     }

@@ -19,7 +19,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Component
 public class OpenAiClassDiagramImageAnalyzer implements ImageAnalysisProvider {
     static final String DEFAULT_API_URL = "https://api.openai.com/v1/responses";
-    static final String DEFAULT_MODEL = "gpt-4o-mini";
+    static final String DEFAULT_MODEL = "gpt-6-luna";
     private final String apiKey;
     private final String model;
     private final URI apiUri;
@@ -28,7 +28,7 @@ public class OpenAiClassDiagramImageAnalyzer implements ImageAnalysisProvider {
 
     public OpenAiClassDiagramImageAnalyzer(
             @Value("${casegen.image-import.api-key:}") String apiKey,
-            @Value("${casegen.image-import.model:gpt-4o-mini}") String model,
+            @Value("${casegen.image-import.model:gpt-6-luna}") String model,
             @Value("${casegen.image-import.api-url:https://api.openai.com/v1/responses}") String apiUrl) {
         this.apiKey = apiKey == null ? "" : apiKey.trim();
         this.model = model == null || model.isBlank() ? DEFAULT_MODEL : model.trim();
@@ -77,8 +77,7 @@ public class OpenAiClassDiagramImageAnalyzer implements ImageAnalysisProvider {
                     .build();
             HttpResponse<String> response = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new ImageImportException("IMAGE_ANALYSIS_UNAVAILABLE", HttpStatus.BAD_GATEWAY,
-                        "The image analysis provider rejected the request (HTTP " + response.statusCode() + ")");
+                throw httpError(response.statusCode());
             }
             JsonNode root = json.readTree(response.body());
             String output = outputText(root);
@@ -100,6 +99,22 @@ public class OpenAiClassDiagramImageAnalyzer implements ImageAnalysisProvider {
     private ImageImportException unavailable(Exception cause) {
         return new ImageImportException("IMAGE_ANALYSIS_UNAVAILABLE", HttpStatus.BAD_GATEWAY,
                 "No fue posible analizar la imagen. Inténtelo nuevamente.", cause);
+    }
+
+    private ImageImportException httpError(int status) {
+        return switch (status) {
+            case 400 -> new ImageImportException("IMAGE_ANALYSIS_INVALID_REQUEST", HttpStatus.BAD_REQUEST,
+                    "El proveedor rechazó la solicitud de análisis por ser inválida.");
+            case 401, 403 -> new ImageImportException("IMAGE_ANALYSIS_CONFIGURATION_INVALID",
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "La configuración del proveedor de análisis no es válida.");
+            case 408, 504 -> new ImageImportException("IMAGE_ANALYSIS_UNAVAILABLE", HttpStatus.GATEWAY_TIMEOUT,
+                    "El proveedor de análisis agotó el tiempo de espera.");
+            case 429 -> new ImageImportException("IMAGE_ANALYSIS_UNAVAILABLE", HttpStatus.TOO_MANY_REQUESTS,
+                    "El proveedor alcanzó su límite temporal de solicitudes.");
+            default -> new ImageImportException("IMAGE_ANALYSIS_UNAVAILABLE", HttpStatus.BAD_GATEWAY,
+                    "El proveedor de análisis no está disponible temporalmente.");
+        };
     }
 
     private String outputText(JsonNode root) {

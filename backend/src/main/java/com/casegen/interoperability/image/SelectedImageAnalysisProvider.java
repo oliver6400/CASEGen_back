@@ -18,10 +18,10 @@ public class SelectedImageAnalysisProvider implements ImageAnalysisProvider {
     public SelectedImageAnalysisProvider(OpenAiClassDiagramImageAnalyzer openAi,
             GeminiImageAnalysisProvider gemini,
             LocalImageAnalysisProvider local,
-            @Value("${casegen.image-import.provider:GEMINI}") String provider,
+            @Value("${casegen.image-import.provider:OPENAI}") String provider,
             @Value("${casegen.image-import.local-fallback-enabled:true}") boolean localFallbackEnabled) {
         String normalized = provider == null || provider.isBlank()
-                ? "GEMINI" : provider.trim().toUpperCase(Locale.ROOT);
+                ? "OPENAI" : provider.trim().toUpperCase(Locale.ROOT);
         this.selected = switch (normalized) {
             case "LOCAL" -> local;
             case "GEMINI" -> gemini;
@@ -41,8 +41,8 @@ public class SelectedImageAnalysisProvider implements ImageAnalysisProvider {
             if (!shouldUseLocalFallback(exception)) throw exception;
             DetectedClassDiagram fallback = local.analyze(image, mimeType, fileName);
             var warnings = new ArrayList<>(fallback.warnings());
-            warnings.add(new DetectionWarning("GEMINI_LOCAL_FALLBACK",
-                    "Gemini no estuvo disponible. Se utilizó análisis local.", null));
+            warnings.add(new DetectionWarning(selected.provider() + "_LOCAL_FALLBACK",
+                    "El proveedor de IA no estuvo disponible. Se utilizó análisis local.", null));
             return new DetectedClassDiagram(fallback.suggestedModelName(),
                     fallback.detectedClassifiers(), fallback.detectedAttributes(),
                     fallback.detectedOperations(), fallback.detectedRelationships(),
@@ -55,13 +55,13 @@ public class SelectedImageAnalysisProvider implements ImageAnalysisProvider {
     @Override public String model() { return selected.model(); }
     @Override public Boolean localOcrAvailable() { return selected.localOcrAvailable(); }
     @Override public boolean fallbackLocalAvailable() {
-        return "GEMINI".equals(selected.provider()) && localFallbackEnabled && local.configured();
+        return !"LOCAL".equals(selected.provider()) && localFallbackEnabled && local.configured();
     }
 
     private boolean shouldUseLocalFallback(ImageImportException exception) {
         if (!fallbackLocalAvailable()) return false;
         return switch (exception.getCode()) {
-            case "GEMINI_QUOTA_EXCEEDED", "GEMINI_UNAVAILABLE" -> true;
+            case "GEMINI_QUOTA_EXCEEDED", "GEMINI_UNAVAILABLE", "IMAGE_ANALYSIS_UNAVAILABLE" -> true;
             default -> false;
         };
     }

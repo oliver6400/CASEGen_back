@@ -49,7 +49,7 @@ class OpenAiClassDiagramImageAnalyzerTest {
         });
         server.start();
         try {
-            var analyzer = new OpenAiClassDiagramImageAnalyzer("backend-secret", "gpt-4o-mini",
+            var analyzer = new OpenAiClassDiagramImageAnalyzer("backend-secret", "gpt-6-luna",
                     "http://127.0.0.1:" + server.getAddress().getPort() + "/responses");
 
             DetectedClassDiagram result = analyzer.analyze(
@@ -60,7 +60,7 @@ class OpenAiClassDiagramImageAnalyzerTest {
             assertEquals("Cliente", result.detectedClassifiers().getFirst().name());
             assertEquals("Bearer backend-secret", authorization.get());
             assertTrue(requestBody.get().contains("data:image/jpeg;base64,"));
-            assertTrue(requestBody.get().contains("gpt-4o-mini"));
+            assertTrue(requestBody.get().contains("gpt-6-luna"));
         } finally {
             server.stop(0);
         }
