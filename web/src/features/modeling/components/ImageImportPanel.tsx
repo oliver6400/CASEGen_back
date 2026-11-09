@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getApiErrorMessage } from '../../../api/apiError'
 import { modelApi, type DetectedClassDiagram, type DetectedType } from '../api/modelApi'
+import { applyVisibilityDefaults } from '../lib/imageProposal'
 
 const MAX_BYTES = 10 * 1024 * 1024
 const primitiveOptions = ['STRING', 'INTEGER', 'BOOLEAN', 'REAL', 'UNLIMITED_NATURAL']
@@ -81,7 +82,7 @@ export function ImageImportPanel({ projectId }: { projectId: string }) {
       {clientError && <p className="form-error mt-3">{clientError}</p>}
       {analyze.isError && <p className="form-error mt-3">{getApiErrorMessage(analyze.error)}</p>}
       {configuration.data && <p className="mt-3 text-xs text-slate-500">Análisis de imagen: {providerLabel(configuration.data.provider)}</p>}
-      {proposal && <ProposalEditor proposal={proposal} previewUrl={previewUrl}
+      {proposal && <ImageProposalEditor proposal={proposal} previewUrl={previewUrl}
         analysisProvider={configuration.data?.provider ?? 'GEMINI'} analysisModel={configuration.data?.model ?? 'gemini-2.5-flash'}
         onChange={setProposal} onCancel={() => { setProposal(null); setFile(null); if (input.current) input.current.value = '' }} onConfirm={() => confirm.mutate()} pending={confirm.isPending} />}
       {confirm.isError && <p className="form-error mt-3">{getApiErrorMessage(confirm.error)}</p>}
@@ -89,7 +90,8 @@ export function ImageImportPanel({ projectId }: { projectId: string }) {
   )
 }
 
-function ProposalEditor({ proposal, previewUrl, analysisProvider, analysisModel, onChange, onCancel, onConfirm, pending }: {
+export function ImageProposalEditor({ proposal, previewUrl, analysisProvider, analysisModel, onChange, onCancel, onConfirm, pending,
+  submitLabel = 'Crear modelo', pendingLabel = 'Creando…', guidance = 'Revise antes de crear.' }: {
   proposal: DetectedClassDiagram
   previewUrl: string
   analysisProvider: string
@@ -98,6 +100,9 @@ function ProposalEditor({ proposal, previewUrl, analysisProvider, analysisModel,
   onCancel: () => void
   onConfirm: () => void
   pending: boolean
+  submitLabel?: string
+  pendingLabel?: string
+  guidance?: string
 }) {
   const classifiers = proposal.detectedClassifiers
   const usedLocalFallback = proposal.warnings.some((warning) => warning.code === 'GEMINI_LOCAL_FALLBACK')
@@ -120,7 +125,7 @@ function ProposalEditor({ proposal, previewUrl, analysisProvider, analysisModel,
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div><h3 className="font-semibold">Elementos detectados</h3>
         <p className="text-sm text-slate-500">Método de análisis: {usedLocalFallback ? 'Local (fallback de Gemini)' : analysisProvider === 'GEMINI' ? prettyGeminiModel(analysisModel) : providerLabel(analysisProvider)}</p>
-        <p className="text-sm text-slate-500">Confianza global: {Math.round(proposal.confidence * 100)}%. Revise antes de crear.</p></div>
+        <p className="text-sm text-slate-500">Confianza global: {Math.round(proposal.confidence * 100)}%. {guidance}</p></div>
       <label className="text-sm font-medium">Nombre del modelo <input className="ml-2 rounded-lg border border-slate-300 px-3 py-2" value={proposal.suggestedModelName} onChange={(event) => update('suggestedModelName', event.target.value)} /></label>
     </div>
     {proposal.warnings.length > 0 && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><strong>Warnings</strong><ul className="mt-1 list-disc pl-5">{proposal.warnings.map((warning, index) => <li key={`${warning.code}-${index}`}>{warning.message}</li>)}</ul></div>}
@@ -193,7 +198,7 @@ function ProposalEditor({ proposal, previewUrl, analysisProvider, analysisModel,
       </div>)}
     </div></section>
 
-    <div className="flex justify-end gap-3"><button className="secondary-button" type="button" onClick={onCancel}>Cancelar</button><button className="primary-button" type="button" disabled={pending} onClick={onConfirm}>{pending ? 'Creando…' : 'Crear modelo'}</button></div>
+    <div className="flex justify-end gap-3"><button className="secondary-button" type="button" onClick={onCancel}>Cancelar</button><button className="primary-button" type="button" disabled={pending} onClick={onConfirm}>{pending ? pendingLabel : submitLabel}</button></div>
   </div>
 }
 
@@ -242,36 +247,4 @@ function providerLabel(provider: string) { return provider === 'GEMINI' ? 'Gemin
 function prettyGeminiModel(model: string) {
   if (model.toLowerCase() === 'gemini-2.5-flash') return 'Gemini 2.5 Flash'
   return `Gemini (${model})`
-}
-
-function applyVisibilityDefaults(proposal: DetectedClassDiagram): DetectedClassDiagram {
-  const visibility = (value: string | null | undefined, fallback: string) => {
-    const normalized = value?.trim().toUpperCase()
-    return !normalized || normalized === 'UNKNOWN' || normalized === 'NOT_APPLICABLE'
-      ? fallback
-      : normalized
-  }
-  const associationTypes = new Set(['ASSOCIATION', 'AGGREGATION', 'COMPOSITION'])
-  return {
-    ...proposal,
-    detectedClassifiers: proposal.detectedClassifiers.map((value) => ({
-      ...value,
-      visibility: visibility(value.visibility, 'PUBLIC'),
-    })),
-    detectedAttributes: proposal.detectedAttributes.map((value) => ({
-      ...value,
-      visibility: visibility(value.visibility, 'PRIVATE'),
-    })),
-    detectedOperations: proposal.detectedOperations.map((value) => ({
-      ...value,
-      visibility: visibility(value.visibility, 'PUBLIC'),
-    })),
-    detectedRelationships: proposal.detectedRelationships.map((value) => associationTypes.has(value.type)
-      ? {
-          ...value,
-          source: { ...value.source, visibility: visibility(value.source.visibility, 'PUBLIC') },
-          target: { ...value.target, visibility: visibility(value.target.visibility, 'PUBLIC') },
-        }
-      : value),
-  }
 }

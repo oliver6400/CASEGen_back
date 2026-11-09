@@ -17,13 +17,14 @@ export function AssociationEndpointDecoration({
   const arrowTip = aggregation === 'NONE' ? 0 : 19
   return <g pointerEvents="none" transform={`translate(${x} ${y}) rotate(${angle})`}>
     {aggregation !== 'NONE' && <polygon
+      className={aggregation === 'COMPOSITE' ? 'uml-edge-decoration uml-edge-decoration-filled' : 'uml-edge-decoration'}
       fill={aggregation === 'COMPOSITE' ? color : 'white'}
       points="1,0 9,-7 17,0 9,7"
       stroke={color}
       strokeLinejoin="round"
       strokeWidth="1.5"
     />}
-    {navigable && <path
+    {navigable && <path className="uml-edge-decoration"
       d={`M ${arrowTip + 13} -5 L ${arrowTip} 0 L ${arrowTip + 13} 5`}
       fill="none"
       stroke={color}
@@ -38,7 +39,7 @@ export function GeneralizationTriangle({
   x, y, towardX, towardY, color,
 }: Omit<EndpointDecorationProps, 'aggregation' | 'navigable'>) {
   return <g pointerEvents="none" transform={`translate(${x} ${y}) rotate(${angleTo(x, y, towardX, towardY)})`}>
-    <polygon
+    <polygon className="uml-edge-decoration"
       fill="white"
       points="1,0 17,-8 17,8"
       stroke={color}

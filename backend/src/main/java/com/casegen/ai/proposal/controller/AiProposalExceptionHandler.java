@@ -21,7 +21,8 @@ public class AiProposalExceptionHandler {
     ResponseEntity<ApiErrorResponse> handleProposal(AiProposalException exception) {
         HttpStatus status = switch (exception.getCode()) {
             case PROJECT_NOT_FOUND, PROPOSAL_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case CLIENT_PROPOSAL_ID_REUSED, CONTEXT_REVISION_CHANGED -> HttpStatus.CONFLICT;
+            case CLIENT_PROPOSAL_ID_REUSED, CLIENT_BATCH_ID_REUSED,
+                    CONTEXT_REVISION_CHANGED -> HttpStatus.CONFLICT;
             case PROPOSAL_ALREADY_DECIDED, PROPOSAL_STALE,
                     PROPOSAL_DEPENDENCY_NOT_APPLIED, BATCH_STALE,
                     BATCH_ALREADY_DECIDED, BATCH_HAS_UNSATISFIED_DEPENDENCY ->

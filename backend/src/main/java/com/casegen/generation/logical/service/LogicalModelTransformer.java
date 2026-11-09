@@ -66,9 +66,11 @@ public class LogicalModelTransformer {
             for (String id : mappings.keySet()) if (kind(id).equals("ENTITY")) fields(id);
             for (JsonNode a : semantic.path("associations")) association(a);
             if (entityTables.isEmpty()) error("NO_ENTITIES","Configure at least one ENTITY with an explicit idPropertyId",null);
+            List<Table> result=tables.values().stream().map(MutableTable::freeze).toList();
+            issues.addAll(PostgresIdentifierValidator.validate(result,this::elementName));
             // Never persist a partial relational schema as an executable/VALID model.
             boolean invalid=issues.stream().anyMatch(i -> i.severity().equals("ERROR"));
-            return new Plan(invalid?List.of():tables.values().stream().map(MutableTable::freeze).toList(),List.copyOf(issues));
+            return new Plan(invalid?List.of():result,List.copyOf(issues));
         }
         MutableTable entity(String id) {
             if (entityTables.containsKey(id)) return entityTables.get(id);

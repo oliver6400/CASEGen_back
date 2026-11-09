@@ -60,7 +60,7 @@ export function UmlNodeContent({ data, stereotype }: { data: UmlNodeData; stereo
         {stereotype && <div className="text-[11px] font-normal">{stereotype}</div>}
         <strong className={classifier.isAbstract ? 'italic' : ''}>{classifier.name}</strong>
       </header>
-      {data.remotePresence.length > 0 && <div className="absolute right-1 top-1 z-20 flex max-w-[70%] flex-wrap justify-end gap-1">
+      {data.remotePresence.length > 0 && <div data-diagram-export-ignore className="absolute right-1 top-1 z-20 flex max-w-[70%] flex-wrap justify-end gap-1">
         {data.remotePresence.map((participant) => <span className="rounded-full px-1.5 py-0.5 font-sans text-[9px] font-bold text-white shadow" key={participant.userId} style={{ backgroundColor: participant.color }} title={`${participant.displayName} está ${participant.activity === 'EDITING' ? 'editando' : 'seleccionando'} ${classifier.name}`}>{participant.displayName}</span>)}
       </div>}
       <div className="uml-compartment min-h-12">

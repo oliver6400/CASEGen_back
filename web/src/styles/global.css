@@ -117,4 +117,10 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 
 .react-flow__node { width: auto; }
 .react-flow__handle.uml-handle { width: 1px; height: 1px; min-width: 1px; min-height: 1px; border: 0; opacity: 0; }
+.diagram-exporting .uml-node { border-color: #1e293b !important; box-shadow: none !important; }
+.diagram-exporting .uml-node-selected { box-shadow: none !important; }
+.diagram-exporting .react-flow__edge-path { stroke: #334155 !important; stroke-width: 1.6 !important; }
+.diagram-exporting .uml-edge-decoration { stroke: #334155 !important; }
+.diagram-exporting .uml-edge-decoration:not(.uml-edge-decoration-filled) { fill: #fff !important; }
+.diagram-exporting .uml-edge-decoration-filled { fill: #334155 !important; }
 .react-flow__attribution { display: none; }

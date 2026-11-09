@@ -2,6 +2,7 @@ package com.casegen.ai.provider;
 
 import com.casegen.ai.provider.gemini.GeminiAiProvider;
 import com.casegen.ai.provider.ollama.OllamaAiProvider;
+import com.casegen.ai.provider.openai.OpenAiAiProvider;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,9 +23,15 @@ public class AiProviderConfiguration {
     }
 
     @Bean
+    OpenAiAiProvider openAiAiProvider(AiProviderProperties properties) {
+        return new OpenAiAiProvider(properties.openai());
+    }
+
+    @Bean
     @Primary
     SelectedAiProvider selectedAiProvider(AiProviderProperties properties,
-            OllamaAiProvider ollama, GeminiAiProvider gemini) {
-        return new SelectedAiProvider(properties.provider(), ollama, gemini);
+            OllamaAiProvider ollama, GeminiAiProvider gemini, OpenAiAiProvider openAi) {
+        return new SelectedAiProvider(properties.provider(), properties.fallbackProvider(),
+                ollama, gemini, openAi);
     }
 }

@@ -1,7 +1,8 @@
-import { ArrowLeft, Bot, CircleHelp, Download, Eye, Focus, Maximize2, PanelLeftOpen, PanelRightOpen, Palette, Plus, RefreshCw, RotateCcw, Wrench } from 'lucide-react'
+import { ArrowLeft, Bot, CircleHelp, Download, Eye, FileImage, FileType2, Focus, ImagePlus, Maximize2, PanelLeftOpen, PanelRightOpen, Palette, Plus, RefreshCw, RotateCcw, Wrench } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAppearanceStore } from '../../appearance/appearanceStore'
 import type { ClassDiagram, UmlClassifierKind } from '../types/uml'
+import type { DiagramExportFormat } from '../lib/diagramExport'
 
 export type RelationshipTool = 'ASSOCIATION' | 'AGGREGATION' | 'COMPOSITION' | 'GENERALIZATION' | 'REALIZATION'
 
@@ -18,6 +19,7 @@ interface ModelingToolbarProps {
   onCreateClassifier: (kind: UmlClassifierKind) => void
   onCreateRelationship: (tool: RelationshipTool) => void
   onToggleToolbox: () => void
+  onOpenImageImport: () => void
   onShowLeftPanel: () => void
   onShowRightPanel: () => void
   onFocusDiagram: () => void
@@ -30,12 +32,14 @@ interface ModelingToolbarProps {
   onFitView: () => void
   onExportXmi: () => void
   isExportingXmi: boolean
+  onExportVisual: (format: DiagramExportFormat) => void
+  exportingVisual: DiagramExportFormat | null
   showAi: boolean
   aiOpen: boolean
   onToggleAi: () => void
 }
 
-export function ModelingToolbar({ projectId, projectName, modelName, semanticRevision, diagram, canEdit, isCreating, onAddExisting, onSyncRelationships, onToggleToolbox, onShowLeftPanel, onShowRightPanel, onFocusDiagram, onRestorePanels, leftPanelHidden, rightPanelHidden, toolboxVisible, focusMode, onRefresh, onFitView, onExportXmi, isExportingXmi, showAi, aiOpen, onToggleAi }: ModelingToolbarProps) {
+export function ModelingToolbar({ projectId, projectName, modelName, semanticRevision, diagram, canEdit, isCreating, onAddExisting, onSyncRelationships, onToggleToolbox, onOpenImageImport, onShowLeftPanel, onShowRightPanel, onFocusDiagram, onRestorePanels, leftPanelHidden, rightPanelHidden, toolboxVisible, focusMode, onRefresh, onFitView, onExportXmi, isExportingXmi, onExportVisual, exportingVisual, showAi, aiOpen, onToggleAi }: ModelingToolbarProps) {
   const openAppearance = useAppearanceStore((state) => state.openPanel)
   return (
     <nav className="workspace-panel grid min-w-0 gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2" style={{ gridColumn: '1 / -1' }} aria-label="Barra de modelado">
@@ -57,8 +61,11 @@ export function ModelingToolbar({ projectId, projectName, modelName, semanticRev
           <button className="toolbar-button" disabled={isCreating} onClick={onAddExisting} type="button"><Plus size={15} /> Existente</button>
           <button className="toolbar-button" disabled={isCreating} onClick={onSyncRelationships} type="button"><RefreshCw size={15} /> Relaciones</button>
           <button className="toolbar-button" aria-pressed={toolboxVisible} onClick={onToggleToolbox} type="button"><Wrench size={15} /> Toolbox</button>
+          <button className="toolbar-button" onClick={onOpenImageImport} type="button"><ImagePlus size={15} /> Imagen a UML</button>
         </>}
         <button className="toolbar-button" disabled={isExportingXmi} onClick={onExportXmi} title={`${modelName}.xmi · UML/XMI`} type="button"><Download size={15} /> {isExportingXmi ? 'Exportando…' : 'Exportar XMI'}</button>
+        <button className="toolbar-button" disabled={exportingVisual !== null} onClick={() => onExportVisual('png')} title="Exportar el diagrama completo como PNG" type="button"><FileImage size={15} /> {exportingVisual === 'png' ? 'Exportando…' : 'PNG'}</button>
+        <button className="toolbar-button" disabled={exportingVisual !== null} onClick={() => onExportVisual('svg')} title="Exportar el diagrama completo como SVG" type="button"><FileType2 size={15} /> {exportingVisual === 'svg' ? 'Exportando…' : 'SVG'}</button>
         {showAi && <button className="toolbar-button" aria-pressed={aiOpen} onClick={onToggleAi} type="button"><Bot size={15} /> IA colaborativa</button>}
         {leftPanelHidden && <button className="toolbar-button" onClick={onShowLeftPanel} type="button"><PanelLeftOpen size={15} /> Diagramas</button>}
         {rightPanelHidden && <button className="toolbar-button" onClick={onShowRightPanel} type="button"><PanelRightOpen size={15} /> Propiedades</button>}
