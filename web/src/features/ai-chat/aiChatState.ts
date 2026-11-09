@@ -30,9 +30,20 @@ export function appendToNewestPage(pages: PagedAiMessageResponse[], additions: A
     : page)
 }
 
+function generateClientMessageId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
 export function createLogicalSend(content: string, modelId?: string, diagramId?: string,
   skill: AiSkill = 'GENERAL'): SendAiMessageRequest {
-  return { clientMessageId: crypto.randomUUID(), content: content.trim(), modelId, diagramId, skill }
+  return { clientMessageId: generateClientMessageId(), content: content.trim(), modelId, diagramId, skill }
 }
 
 export function aiSkillLabel(skill: AiSkill) {
