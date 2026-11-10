@@ -35,8 +35,8 @@ export function useAiChat({ projectId, sessionId, modelId, diagramId, enabled }:
     },
     onError: (_error, request) => setFailedRequest(request),
   })
-  const send = (content: string, skill: AiSkill) => sendMutation.mutate(createLogicalSend(
-    content, modelId || undefined, diagramId || undefined, skill))
+  const send = (content: string, skill: AiSkill, imageUrl?: string | null) => sendMutation.mutate(createLogicalSend(
+    content, modelId || undefined, diagramId || undefined, skill, imageUrl))
   const retry = () => { if (failedRequest) sendMutation.mutate(failedRequest) }
 
   return {

@@ -22,6 +22,7 @@ public class AiMessageMapper {
                 message.getDiagram() == null ? null : message.getDiagram().getName(),
                 message.getProvider(),
                 message.getReplyTo() == null ? null : message.getReplyTo().getId(),
+                message.getImageUrl(),
                 message.getCreatedAt());
     }
 

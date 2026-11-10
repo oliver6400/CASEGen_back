@@ -15,11 +15,24 @@ import com.casegen.ai.provider.AiProviderProperties;
 import com.casegen.ai.provider.AiProviderResult;
 import com.casegen.ai.provider.SelectedAiProvider;
 import com.casegen.auth.domain.User;
+import com.casegen.interoperability.image.DetectedClassDiagram;
+import com.casegen.interoperability.image.ImageImportExistingConfirmRequest;
+import com.casegen.interoperability.image.ImageImportExistingConfirmationService;
+import com.casegen.interoperability.image.ImageImportReconciliationPreviewRequest;
+import com.casegen.interoperability.image.ImageImportReconciliationPreviewResponse;
+import com.casegen.interoperability.image.ImageImportReconciliationPreviewResponse.Action;
+import com.casegen.interoperability.image.ImageImportReconciliationPreviewService;
+import com.casegen.interoperability.image.ImageImportService;
 import com.casegen.project.service.ProjectAuthorizationService;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,6 +47,9 @@ public class AiMessageService {
     private final AiMessagePersistenceService persistence;
     private final AiSessionGenerationCoordinator generationCoordinator;
     private final int maxMessageLength;
+    private final ImageImportService imageImportService;
+    private final ImageImportReconciliationPreviewService reconciliationPreview;
+    private final ImageImportExistingConfirmationService existingConfirmation;
     // Coalesces identical requests only inside this Spring process. PostgreSQL constraints remain
     // the final persistence guard in multi-instance deployments; distributed exact-once provider
     // invocation would require a queue, outbox, or distributed lock outside B2-5.
@@ -44,11 +60,27 @@ public class AiMessageService {
             AiMessagePersistenceService persistence,
             AiSessionGenerationCoordinator generationCoordinator,
             AiProviderProperties properties) {
+        this(authorization, contextBuilder, provider, persistence, generationCoordinator, properties,
+                null, null, null);
+    }
+
+    @Autowired
+    public AiMessageService(ProjectAuthorizationService authorization,
+            AiContextBuilder contextBuilder, SelectedAiProvider provider,
+            AiMessagePersistenceService persistence,
+            AiSessionGenerationCoordinator generationCoordinator,
+            AiProviderProperties properties,
+            @Autowired(required = false) ImageImportService imageImportService,
+            @Autowired(required = false) ImageImportReconciliationPreviewService reconciliationPreview,
+            @Autowired(required = false) ImageImportExistingConfirmationService existingConfirmation) {
         this.authorization = authorization;
         this.contextBuilder = contextBuilder;
         this.provider = provider;
         this.persistence = persistence;
         this.generationCoordinator = generationCoordinator;
+        this.imageImportService = imageImportService;
+        this.reconciliationPreview = reconciliationPreview;
+        this.existingConfirmation = existingConfirmation;
         this.maxMessageLength = properties.maxMessageLength() > 0
                 ? properties.maxMessageLength() : 8000;
     }
@@ -90,9 +122,13 @@ public class AiMessageService {
             NormalizedRequest request) {
         PreparedUserMessage prepared;
         try {
-            prepared = persistence.persistOrReuseUser(projectId, sessionId, actor,
-                    request.clientMessageId(), request.content(), request.modelId(), request.diagramId(),
-                    request.skill());
+            prepared = request.imageUrl() != null && !request.imageUrl().isBlank()
+                    ? persistence.persistOrReuseUser(projectId, sessionId, actor,
+                            request.clientMessageId(), request.content(), request.modelId(), request.diagramId(),
+                            request.skill(), request.imageUrl())
+                    : persistence.persistOrReuseUser(projectId, sessionId, actor,
+                            request.clientMessageId(), request.content(), request.modelId(), request.diagramId(),
+                            request.skill());
         } catch (DataIntegrityViolationException collision) {
             throw new AiMessageException(CLIENT_MESSAGE_ID_REUSED,
                     "Concurrent reuse of clientMessageId was detected");
@@ -102,8 +138,114 @@ public class AiMessageService {
             return new SendAiMessageResult(prepared.userMessage(), prepared.assistantMessage(), true);
         }
         AiMessage assistant = generationCoordinator.execute(sessionId,
-                () -> generateAssistant(projectId, sessionId, request, prepared.userMessage()));
+                () -> {
+                    if (prepared.userMessage().getImageUrl() != null && !prepared.userMessage().getImageUrl().isBlank()
+                            && imageImportService != null) {
+                        return generateAssistantForImage(projectId, sessionId, request, prepared.userMessage());
+                    }
+                    return generateAssistant(projectId, sessionId, request, prepared.userMessage());
+                });
         return new SendAiMessageResult(prepared.userMessage(), assistant, !prepared.created());
+    }
+
+    private AiMessage generateAssistantForImage(UUID projectId, UUID sessionId,
+            NormalizedRequest request, AiMessage userMessage) {
+        try {
+            byte[] bytes = decodeBase64Image(userMessage.getImageUrl());
+            if (bytes == null || bytes.length == 0) {
+                return persistence.persistAssistant(userMessage.getId(),
+                        new AiProviderResult("No se pudo procesar la imagen adjunta. Verifica el formato.", "SYSTEM", "system", "STOP"));
+            }
+            String mediaType = detectMediaType(userMessage.getImageUrl());
+            DetectedClassDiagram detected = imageImportService.analyze(projectId, bytes, mediaType, "chat-upload.png");
+
+            if (request.modelId() != null && request.diagramId() != null && existingConfirmation != null && reconciliationPreview != null
+                    && userMessage.getModel() != null && userMessage.getDiagram() != null) {
+                var previewReq = new ImageImportReconciliationPreviewRequest(
+                        request.modelId(), request.diagramId(), null,
+                        userMessage.getModel().getRevision(), userMessage.getDiagram().getRevision(),
+                        detected);
+                var preview = reconciliationPreview.preview(projectId, previewReq);
+
+                List<ImageImportExistingConfirmRequest.Decision> decisions = new ArrayList<>();
+                for (var item : preview.items()) {
+                    Action action = item.suggestedAction();
+                    if (action == Action.CONFLICT) {
+                        action = Action.CREATE;
+                    }
+                    UUID candidateId = (action == Action.MAP_TO_EXISTING && !item.candidates().isEmpty())
+                            ? item.candidates().get(0).elementId()
+                            : null;
+                    decisions.add(new ImageImportExistingConfirmRequest.Decision(
+                            item.temporaryId(), action, candidateId));
+                }
+
+                var confirmReq = new ImageImportExistingConfirmRequest(
+                        request.modelId(), request.diagramId(), null,
+                        userMessage.getModel().getRevision(), userMessage.getDiagram().getRevision(),
+                        detected, decisions);
+
+                var response = existingConfirmation.confirm(projectId, confirmReq);
+
+                StringBuilder sb = new StringBuilder();
+                sb.append("He analizado la imagen y extraído los elementos UML directamente en el lienzo:\n\n");
+                sb.append("📊 **Resumen de elementos insertados:**\n");
+                sb.append("- **Nuevos elementos creados:** ").append(response.createdElementCount()).append("\n");
+                sb.append("- **Nodos en el diagrama:** ").append(response.createdNodeCount()).append("\n");
+                sb.append("- **Relaciones agregadas:** ").append(response.createdEdgeCount()).append("\n\n");
+
+                if (!detected.detectedClassifiers().isEmpty()) {
+                    sb.append("🏷️ **Clases identificadas:**\n");
+                    for (var c : detected.detectedClassifiers()) {
+                        sb.append("- `").append(c.name()).append("` (").append(c.kind()).append(")\n");
+                    }
+                }
+                if (!detected.warnings().isEmpty()) {
+                    sb.append("\n⚠️ **Observaciones:**\n");
+                    for (var w : detected.warnings()) {
+                        sb.append("- ").append(w.message()).append("\n");
+                    }
+                }
+                sb.append("\n✅ *El lienzo se ha actualizado en tiempo real con las nuevas clases y sus atributos.*");
+
+                return persistence.persistAssistant(userMessage.getId(),
+                        new AiProviderResult(sb.toString(), "OPENAI", "gpt-6-luna", "STOP"));
+            } else {
+                StringBuilder sb = new StringBuilder();
+                sb.append("He analizado la imagen y detectado los siguientes elementos UML:\n\n");
+                for (var c : detected.detectedClassifiers()) {
+                    sb.append("- **Clase:** `").append(c.name()).append("` (").append(c.kind()).append(")\n");
+                }
+                sb.append("\n*Abre un diagrama en el editor para que pueda insertar estos elementos directamente en el lienzo.*");
+                return persistence.persistAssistant(userMessage.getId(),
+                        new AiProviderResult(sb.toString(), "OPENAI", "gpt-6-luna", "STOP"));
+            }
+        } catch (Exception ex) {
+            String errorMsg = "No se pudieron extraer elementos UML de la imagen adjunta: " +
+                    (ex.getMessage() != null ? ex.getMessage() : "formato no reconocido o sin clases claras.") +
+                    "\nAsegúrate de que la imagen sea legible y contenga nombres de clases y atributos.";
+            return persistence.persistAssistant(userMessage.getId(),
+                    new AiProviderResult(errorMsg, "SYSTEM", "system", "STOP"));
+        }
+    }
+
+    private byte[] decodeBase64Image(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) return null;
+        String base64 = imageUrl;
+        if (base64.contains(",")) {
+            base64 = base64.substring(base64.indexOf(",") + 1);
+        }
+        return Base64.getDecoder().decode(base64.trim());
+    }
+
+    private String detectMediaType(String imageUrl) {
+        if (imageUrl != null && imageUrl.startsWith("data:image/")) {
+            int end = imageUrl.indexOf(";");
+            if (end > 5) {
+                return imageUrl.substring(5, end).toLowerCase(Locale.ROOT);
+            }
+        }
+        return "image/png";
     }
 
     private AiMessage generateAssistant(UUID projectId, UUID sessionId,
@@ -143,7 +285,7 @@ public class AiMessageService {
         }
         AiSkill skill = request.skill() == null ? AiSkill.GENERAL : request.skill();
         return new NormalizedRequest(actorId, request.clientMessageId(), content,
-                request.modelId(), request.diagramId(), skill);
+                request.modelId(), request.diagramId(), skill, request.imageUrl());
     }
 
     private SendAiMessageResult await(CompletableFuture<SendAiMessageResult> future) {
@@ -163,7 +305,7 @@ public class AiMessageService {
 
     private record MessageKey(UUID sessionId, UUID clientMessageId) { }
     private record NormalizedRequest(UUID actorId, UUID clientMessageId, String content,
-                                     UUID modelId, UUID diagramId, AiSkill skill) { }
+                                     UUID modelId, UUID diagramId, AiSkill skill, String imageUrl) { }
     private record InFlight(NormalizedRequest request,
                             CompletableFuture<SendAiMessageResult> result) { }
 }

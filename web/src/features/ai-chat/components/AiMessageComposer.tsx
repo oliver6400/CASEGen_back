@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { ArrowUp, LoaderCircle, Mic, Square } from 'lucide-react'
+import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { ArrowUp, ImagePlus, LoaderCircle, Mic, Square, X } from 'lucide-react'
 import { aiChatApi } from '../api/aiChatApi'
 import type { AiSkill } from '../types/aiMessage'
 
@@ -19,14 +19,17 @@ interface AudioCapture {
 export function AiMessageComposer({ disabled, processing, onSend }: {
   disabled: boolean
   processing: boolean
-  onSend: (content: string, skill: AiSkill) => void
+  onSend: (content: string, skill: AiSkill, imageUrl?: string | null) => void
 }) {
   const [content, setContent] = useState('')
   const [skill, setSkill] = useState<AiSkill>('GENERAL')
   const [recording, setRecording] = useState(false)
   const [transcribing, setTranscribing] = useState(false)
   const [speechError, setSpeechError] = useState('')
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [imageError, setImageError] = useState('')
   const capture = useRef<AudioCapture | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => () => {
     const activeCapture = capture.current
@@ -41,12 +44,31 @@ export function AiMessageComposer({ disabled, processing, onSend }: {
 
   const submit = () => {
     const trimmed = content.trim()
-    if (!trimmed || disabled || processing) return
-    onSend(trimmed, skill)
+    if ((!trimmed && !imageUrl) || disabled || processing) return
+    const finalContent = trimmed || 'Analiza la imagen adjunta y extrae las clases al lienzo.'
+    onSend(finalContent, skill, imageUrl)
     setContent('')
+    setImageUrl(null)
   }
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); submit() }
+  }
+
+  const onFileSelected = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) {
+      setImageError('La imagen no puede superar 10 MB.')
+      return
+    }
+    setImageError('')
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string
+      setImageUrl(dataUrl)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
   }
   const stopRecording = async () => {
     const activeCapture = capture.current
@@ -122,11 +144,48 @@ export function AiMessageComposer({ disabled, processing, onSend }: {
   }
 
   return <div className="border-t border-[var(--border)] pt-1.5">
-    {processing && <p className="mb-1 text-[11px] font-medium text-indigo-600">CASEGen IA está respondiendo…</p>}
+    {processing && <p className="mb-1 text-[11px] font-medium text-indigo-600">CASEGen IA está respondiendo y procesando…</p>}
     {recording && <p aria-live="polite" className="mb-1 text-[11px] font-medium text-red-600">Grabando… pulsa el micrófono para terminar (máx. 60 s).</p>}
     {transcribing && <p aria-live="polite" className="mb-1 text-[11px] font-medium text-indigo-600">Transcribiendo audio sin conexión…</p>}
     {speechError && <p role="alert" className="mb-1 text-[11px] text-red-600">{speechError}</p>}
-    <textarea className="min-h-14 w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" disabled={disabled || processing || recording || transcribing} maxLength={MAX_LENGTH} onChange={(event) => setContent(event.target.value)} onKeyDown={onKeyDown} placeholder="Escribe una pregunta…" value={content} />
+    {imageError && <p role="alert" className="mb-1 text-[11px] text-red-600">{imageError}</p>}
+
+    {imageUrl && (
+      <div className="relative mb-2 inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50/70 p-1.5">
+        <img src={imageUrl} alt="Diagrama adjunto" className="h-16 w-auto max-w-[120px] rounded object-cover shadow-sm" />
+        <div className="text-[11px] text-indigo-900 pr-5">
+          <span className="font-semibold block">Imagen adjunta</span>
+          <span className="text-slate-500 text-[10px]">Se extraerán las clases al lienzo</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setImageUrl(null)}
+          className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-white shadow transition hover:bg-red-600"
+          title="Eliminar imagen"
+        >
+          <X size={12} />
+        </button>
+      </div>
+    )}
+
+    <input
+      type="file"
+      ref={fileInputRef}
+      accept="image/*,.png,.jpg,.jpeg,.webp,.jfif"
+      className="hidden"
+      onChange={onFileSelected}
+    />
+
+    <textarea
+      className="min-h-14 w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+      disabled={disabled || processing || recording || transcribing}
+      maxLength={MAX_LENGTH}
+      onChange={(event) => setContent(event.target.value)}
+      onKeyDown={onKeyDown}
+      placeholder={imageUrl ? "Describe detalles opcionales o presiona Enviar…" : "Escribe una pregunta o adjunta un diagrama..."}
+      value={content}
+    />
+
     <div className="mt-1 flex items-end justify-between gap-2">
       <div className="min-w-0">
         <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600">Modo IA
@@ -139,10 +198,24 @@ export function AiMessageComposer({ disabled, processing, onSend }: {
         <span className="mt-0.5 block text-[9px] text-slate-400">{content.length}/{MAX_LENGTH} · Shift+Enter: nueva línea</span>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
+        <button
+          aria-label="Adjuntar imagen de diagrama"
+          className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] transition focus:outline-none focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-50 ${
+            imageUrl ? 'border-indigo-500 text-indigo-600 bg-indigo-50' : 'text-slate-600 hover:border-indigo-300 hover:text-indigo-600'
+          }`}
+          disabled={disabled || processing || recording || transcribing}
+          onClick={() => fileInputRef.current?.click()}
+          title="Adjuntar imagen de diagrama (PNG, JPG, WEBP)"
+          type="button"
+        >
+          <ImagePlus aria-hidden="true" size={16} />
+        </button>
+
         <button aria-label={recording ? 'Detener grabación' : 'Dictar con el micrófono'} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-slate-600 transition hover:border-indigo-300 hover:text-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-50" disabled={disabled || processing || transcribing} onClick={() => recording ? void stopRecording() : void startRecording()} title={recording ? 'Detener grabación' : 'Dictar con el micrófono'} type="button">
           {recording ? <Square aria-hidden="true" size={16} /> : <Mic aria-hidden="true" size={16} />}
         </button>
-        <button aria-label={processing ? 'CASEGen IA está respondiendo' : 'Enviar mensaje'} className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-indigo-300" disabled={disabled || processing || recording || transcribing || !content.trim()} onClick={submit} title={processing ? 'Procesando…' : 'Enviar'} type="button">
+
+        <button aria-label={processing ? 'CASEGen IA está respondiendo' : 'Enviar mensaje'} className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-indigo-300" disabled={disabled || processing || recording || transcribing || (!content.trim() && !imageUrl)} onClick={submit} title={processing ? 'Procesando…' : 'Enviar'} type="button">
           {processing ? <LoaderCircle className="animate-spin" size={17} /> : <ArrowUp aria-hidden="true" size={18} strokeWidth={2.5} />}
         </button>
       </div>

@@ -7,6 +7,15 @@ import { modelApi, type DetectedClassDiagram, type DetectedType } from '../api/m
 import { applyVisibilityDefaults } from '../lib/imageProposal'
 
 const MAX_BYTES = 10 * 1024 * 1024
+const ACCEPTED_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/pjpeg', 'image/x-png', 'image/webp', 'image/jfif'])
+const IMAGE_EXTENSION_REGEX = /\.(png|jpe?g|webp|jfif)$/i
+
+function isSupportedImage(candidate: File): boolean {
+  if (candidate.type && (ACCEPTED_TYPES.has(candidate.type) || candidate.type.startsWith('image/'))) {
+    return true
+  }
+  return IMAGE_EXTENSION_REGEX.test(candidate.name)
+}
 const primitiveOptions = ['STRING', 'INTEGER', 'BOOLEAN', 'REAL', 'UNLIMITED_NATURAL']
 const visibilityOptions = ['PUBLIC', 'PRIVATE', 'PROTECTED', 'PACKAGE']
 
@@ -48,8 +57,8 @@ export function ImageImportPanel({ projectId }: { projectId: string }) {
   const chooseFile = (candidate: File | null) => {
     setProposal(null); analyze.reset(); confirm.reset(); setClientError('')
     if (!candidate) { setFile(null); return }
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(candidate.type)) {
-      setFile(null); setClientError('Use una imagen PNG, JPG, JPEG o WEBP.'); return
+    if (!isSupportedImage(candidate)) {
+      setFile(null); setClientError('Use una imagen válida (PNG, JPG, JPEG o WEBP).'); return
     }
     if (candidate.size > MAX_BYTES) {
       setFile(null); setClientError('La imagen no puede superar 10 MB.'); return
@@ -71,7 +80,7 @@ export function ImageImportPanel({ projectId }: { projectId: string }) {
   return (
     <div>
       {!proposal && <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <input ref={input} className="block flex-1 text-sm text-slate-600" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+        <input ref={input} className="block flex-1 text-sm text-slate-600" type="file" accept="image/*,.png,.jpg,.jpeg,.webp,.jfif"
           onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} />
         <button className="primary-button" type="button" disabled={!file || analyze.isPending || configuration.data?.configured === false} onClick={() => analyze.mutate()}>
           <ImageUp size={17} /> {analyze.isPending ? 'Analizando…' : 'Analizar imagen'}

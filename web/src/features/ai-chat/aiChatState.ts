@@ -42,8 +42,8 @@ function generateClientMessageId(): string {
 }
 
 export function createLogicalSend(content: string, modelId?: string, diagramId?: string,
-  skill: AiSkill = 'GENERAL'): SendAiMessageRequest {
-  return { clientMessageId: generateClientMessageId(), content: content.trim(), modelId, diagramId, skill }
+  skill: AiSkill = 'GENERAL', imageUrl?: string | null): SendAiMessageRequest {
+  return { clientMessageId: generateClientMessageId(), content: content.trim(), modelId, diagramId, skill, imageUrl }
 }
 
 export function aiSkillLabel(skill: AiSkill) {

@@ -77,6 +77,9 @@ public class AiMessage {
             foreignKey = @ForeignKey(name = "fk_ai_messages_reply_to"))
     private AiMessage replyTo;
 
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageUrl;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -85,7 +88,7 @@ public class AiMessage {
 
     private AiMessage(AiSession session, User author, AiMessageRole role, AiSkill skill, String content,
             UmlModel model, Diagram diagram, String provider, UUID clientMessageId,
-            AiMessage replyTo, Instant createdAt) {
+            AiMessage replyTo, String imageUrl, Instant createdAt) {
         this.session = Objects.requireNonNull(session, "session is required");
         this.author = author;
         this.role = Objects.requireNonNull(role, "role is required");
@@ -96,19 +99,26 @@ public class AiMessage {
         this.provider = provider;
         this.clientMessageId = clientMessageId;
         this.replyTo = replyTo;
+        this.imageUrl = imageUrl;
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt is required");
     }
 
     public static AiMessage userMessage(AiSession session, User author, String content,
             UmlModel model, Diagram diagram, UUID clientMessageId, Instant createdAt) {
         return userMessage(session, author, content, model, diagram, clientMessageId,
-                AiSkill.GENERAL, createdAt);
+                AiSkill.GENERAL, null, createdAt);
     }
 
     public static AiMessage userMessage(AiSession session, User author, String content,
             UmlModel model, Diagram diagram, UUID clientMessageId, AiSkill skill, Instant createdAt) {
+        return userMessage(session, author, content, model, diagram, clientMessageId,
+                skill, null, createdAt);
+    }
+
+    public static AiMessage userMessage(AiSession session, User author, String content,
+            UmlModel model, Diagram diagram, UUID clientMessageId, AiSkill skill, String imageUrl, Instant createdAt) {
         return new AiMessage(session, Objects.requireNonNull(author, "author is required"),
-                AiMessageRole.USER, skill, content, model, diagram, null, clientMessageId, null, createdAt);
+                AiMessageRole.USER, skill, content, model, diagram, null, clientMessageId, null, imageUrl, createdAt);
     }
 
     public static AiMessage assistantMessage(AiSession session, String content, String provider,
@@ -122,7 +132,7 @@ public class AiMessage {
         }
         AiSkill skill = replyTo == null ? AiSkill.GENERAL : replyTo.getSkill();
         return new AiMessage(session, null, AiMessageRole.ASSISTANT, skill, content, model, diagram,
-                validProvider, null, replyTo, createdAt);
+                validProvider, null, replyTo, null, createdAt);
     }
 
     @PrePersist
@@ -148,5 +158,6 @@ public class AiMessage {
     public String getProvider() { return provider; }
     public UUID getClientMessageId() { return clientMessageId; }
     public AiMessage getReplyTo() { return replyTo; }
+    public String getImageUrl() { return imageUrl; }
     public Instant getCreatedAt() { return createdAt; }
 }

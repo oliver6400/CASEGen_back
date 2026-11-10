@@ -19,6 +19,14 @@ public record AiMessageResponse(
         String diagramName,
         String provider,
         UUID replyToMessageId,
+        String imageUrl,
         Instant createdAt
 ) {
+    public AiMessageResponse(UUID id, UUID sessionId, AiMessageRole role, AiSkill skill,
+            UUID authorUserId, String authorName, String content, UUID modelId, String modelName,
+            UUID diagramId, String diagramName, String provider, UUID replyToMessageId,
+            Instant createdAt) {
+        this(id, sessionId, role, skill, authorUserId, authorName, content, modelId, modelName,
+                diagramId, diagramName, provider, replyToMessageId, null, createdAt);
+    }
 }

@@ -44,6 +44,10 @@ export function useProjectAiRealtime(projectId: string, sessionId: string | unde
               pages: appendToNewestPage(current.pages, [event.message]),
             } : current,
           )
+          if (event.message.diagramId) {
+            void queryClient.invalidateQueries({ queryKey: ['diagrams', event.message.diagramId] })
+            void queryClient.invalidateQueries({ queryKey: ['uml-models'] })
+          }
           break
         case 'AI_PROPOSAL_CREATED':
         case 'AI_PROPOSAL_APPLIED':

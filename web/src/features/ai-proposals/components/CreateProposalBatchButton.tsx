@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { AiMessageResponse } from '../../ai-chat/types/aiMessage'
 import { useGenerateAiProposalBatch } from '../hooks/useAiProposalBatches'
+import { safeRandomUUID } from '../aiProposalState'
 
 export function CreateProposalBatchButton({ projectId, message, onCreated }: {
   projectId: string
@@ -12,7 +13,7 @@ export function CreateProposalBatchButton({ projectId, message, onCreated }: {
   if (message.role !== 'ASSISTANT' || message.skill !== 'UML_REVIEWER') return null
 
   const submit = () => {
-    const id = attempt ?? crypto.randomUUID()
+    const id = attempt ?? safeRandomUUID()
     if (!attempt) setAttempt(id)
     mutation.mutate({ sessionId: message.sessionId, messageId: message.id, clientBatchId: id }, {
       onSuccess: ({ batch }) => {

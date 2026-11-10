@@ -57,6 +57,13 @@ public class AiMessagePersistenceService {
     @Transactional
     public PreparedUserMessage persistOrReuseUser(UUID projectId, UUID sessionId, User actor,
             UUID clientMessageId, String content, UUID modelId, UUID diagramId, AiSkill skill) {
+        return persistOrReuseUser(projectId, sessionId, actor, clientMessageId, content,
+                modelId, diagramId, skill, null);
+    }
+
+    @Transactional
+    public PreparedUserMessage persistOrReuseUser(UUID projectId, UUID sessionId, User actor,
+            UUID clientMessageId, String content, UUID modelId, UUID diagramId, AiSkill skill, String imageUrl) {
         AiSession session = sessions.findByIdAndProjectIdForUpdate(sessionId, projectId)
                 .orElseThrow(() -> error(SESSION_NOT_FOUND, "AI session not found"));
         if (!session.isActive()) throw error(SESSION_NOT_ACTIVE, "AI session is closed");
@@ -73,7 +80,7 @@ public class AiMessagePersistenceService {
         UmlModel model = resolveModel(modelId, projectId);
         Diagram diagram = resolveDiagram(diagramId, model);
         AiMessage user = AiMessage.userMessage(session, actor, content, model, diagram,
-                clientMessageId, skill, clock.instant());
+                clientMessageId, skill, imageUrl, clock.instant());
         AiMessage persisted = messages.saveAndFlush(user);
         events.created(projectId, persisted);
         return new PreparedUserMessage(persisted, null, true);

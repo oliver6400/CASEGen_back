@@ -36,6 +36,19 @@ export function AiMessageList({ messages, canLoadOlder, loadingOlder, onLoadOlde
         <span>{formatTime(message.createdAt)}</span>
       </div>
       {assistant && message.provider && <div className="ml-7 mt-0.5 text-[10px] uppercase tracking-wide text-violet-500">{message.provider}</div>}
+      {message.imageUrl && (
+        <div className="mt-2 overflow-hidden rounded-lg border border-slate-200 bg-white/80 p-1 shadow-sm">
+          <a href={message.imageUrl} target="_blank" rel="noopener noreferrer" title="Clic para ver imagen completa">
+            <img
+              src={message.imageUrl}
+              alt="Diagrama adjunto"
+              className="max-h-64 w-full rounded object-contain transition hover:opacity-95"
+              loading="lazy"
+            />
+          </a>
+          <span className="block pt-1 text-center text-[10px] text-slate-400">Clic para abrir imagen</span>
+        </div>
+      )}
       <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-800">{message.content}</p>
       {(message.modelName || message.diagramName) && <div className="mt-2 text-[10px] text-slate-400">
         Contexto: {[message.modelName, message.diagramName].filter(Boolean).join(' / ')}

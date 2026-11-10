@@ -53,8 +53,9 @@ public class ImageImportService {
     public DetectedClassDiagram analyze(UUID projectId, byte[] content, String contentType, String fileName) {
         authorization.requireWrite(projectId);
         validateImage(content, contentType);
+        String media = detectMediaType(content, contentType);
         DetectedClassDiagram detected = normalizeDetectedModel(
-                analyzer.analyze(content, normalizeMediaType(contentType), fileName));
+                analyzer.analyze(content, media, fileName));
         try {
             DetectedClassDiagramResponseValidator.validate(detected);
         } catch (RuntimeException exception) {
@@ -440,10 +441,20 @@ public class ImageImportService {
         if (bytes == null || bytes.length == 0) throw error("EMPTY_IMAGE", HttpStatus.BAD_REQUEST, "Select an image");
         if (bytes.length > maxBytes) throw error("IMAGE_TOO_LARGE", HttpStatus.PAYLOAD_TOO_LARGE,
                 "The image exceeds the maximum allowed size of " + maxBytes + " bytes");
-        String media = normalizeMediaType(contentType);
+        String media = detectMediaType(bytes, contentType);
         if (!MEDIA_TYPES.contains(media) || !matchesSignature(bytes, media))
             throw error("UNSUPPORTED_IMAGE", HttpStatus.UNSUPPORTED_MEDIA_TYPE,
                     "Only valid PNG, JPG, JPEG or WEBP images are accepted");
+    }
+
+    private String detectMediaType(byte[] bytes, String contentType) {
+        String media = normalizeMediaType(contentType);
+        if (!MEDIA_TYPES.contains(media) && bytes != null) {
+            if (matchesSignature(bytes, "image/png")) return "image/png";
+            if (matchesSignature(bytes, "image/jpeg")) return "image/jpeg";
+            if (matchesSignature(bytes, "image/webp")) return "image/webp";
+        }
+        return media;
     }
 
     private boolean matchesSignature(byte[] b, String type) {
@@ -456,7 +467,17 @@ public class ImageImportService {
         };
     }
 
-    private String normalizeMediaType(String value) { return value == null ? "" : value.split(";", 2)[0].trim().toLowerCase(Locale.ROOT); }
+    private String normalizeMediaType(String value) {
+        if (value == null) return "";
+        String base = value.split(";", 2)[0].trim().toLowerCase(Locale.ROOT);
+        if ("image/jpg".equals(base) || "image/pjpeg".equals(base) || "image/jfif".equals(base)) {
+            return "image/jpeg";
+        }
+        if ("image/x-png".equals(base)) {
+            return "image/png";
+        }
+        return base;
+    }
     private ClassifierKind classifierKind(String value) { return enumValue(ClassifierKind.class, value, "classifier kind"); }
     private Visibility visibility(String value) { return enumValue(Visibility.class, value, "visibility"); }
     private PrimitiveType primitive(String value) { return enumValue(PrimitiveType.class, value, "primitive type"); }

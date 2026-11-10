@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -118,6 +121,39 @@ class AiMessageServiceTest {
         ArgumentCaptor<AiContextRequest> context = ArgumentCaptor.forClass(AiContextRequest.class);
         verify(contextBuilder).build(context.capture());
         assertEquals(AiSkill.UML_REVIEWER, context.getValue().skill());
+    }
+
+    @Test
+    void messageWithImageInvokesImageAnalyzerWhenPresent() {
+        var imageService = mock(com.casegen.interoperability.image.ImageImportService.class);
+        var previewService = mock(com.casegen.interoperability.image.ImageImportReconciliationPreviewService.class);
+        var confirmService = mock(com.casegen.interoperability.image.ImageImportExistingConfirmationService.class);
+        AiMessageService customService = new AiMessageService(authorization, contextBuilder, provider, persistence,
+                new AiSessionGenerationCoordinator(), properties(), imageService, previewService, confirmService);
+
+        String base64Image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+        var request = new SendAiMessageRequest(user.getClientMessageId(), "extrae el diagrama", null, null,
+                AiSkill.UML_REVIEWER, base64Image);
+
+        AiSession currentSession = session(actor);
+        AiMessage userWithImage = AiMessage.userMessage(currentSession, actor, "extrae el diagrama", null, null,
+                request.clientMessageId(), AiSkill.UML_REVIEWER, base64Image, Instant.now());
+        ReflectionTestUtils.setField(userWithImage, "id", UUID.randomUUID());
+
+        when(persistence.persistOrReuseUser(projectId, sessionId, actor,
+                request.clientMessageId(), "extrae el diagrama", null, null, AiSkill.UML_REVIEWER, base64Image))
+                .thenReturn(new PreparedUserMessage(userWithImage, null, true));
+
+        var detected = new com.casegen.interoperability.image.DetectedClassDiagram("Model", List.of(), List.of(), List.of(), List.of(), List.of(), 0.9);
+        when(imageService.analyze(eq(projectId), any(), eq("image/png"), anyString())).thenReturn(detected);
+
+        when(persistence.persistAssistant(eq(userWithImage.getId()), any())).thenReturn(assistant);
+
+        SendAiMessageResult sent = customService.send(projectId, sessionId, request);
+
+        assertSame(userWithImage, sent.userMessage());
+        assertSame(assistant, sent.assistantMessage());
+        verify(imageService).analyze(eq(projectId), any(), eq("image/png"), anyString());
     }
 
     @Test

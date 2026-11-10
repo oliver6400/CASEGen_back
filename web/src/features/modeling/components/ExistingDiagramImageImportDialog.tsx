@@ -22,7 +22,15 @@ import { applyVisibilityDefaults } from '../lib/imageProposal'
 import { ImageProposalEditor } from './ImageImportPanel'
 
 const MAX_BYTES = 10 * 1024 * 1024
-const ACCEPTED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp'])
+const ACCEPTED_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/pjpeg', 'image/x-png', 'image/webp', 'image/jfif'])
+const IMAGE_EXTENSION_REGEX = /\.(png|jpe?g|webp|jfif)$/i
+
+function isSupportedImage(candidate: File): boolean {
+  if (candidate.type && (ACCEPTED_TYPES.has(candidate.type) || candidate.type.startsWith('image/'))) {
+    return true
+  }
+  return IMAGE_EXTENSION_REGEX.test(candidate.name)
+}
 
 interface ExistingDiagramImageImportDialogProps {
   projectId: string
@@ -111,8 +119,8 @@ export function ExistingDiagramImageImportDialog({
     setProposal(null); setPreview(null); setDecisions({}); setClientError(''); setImageUrl('')
     analyze.reset(); reconcile.reset(); confirm.reset(); setConfirmationUncertain(false)
     if (!candidate) { setFile(null); return }
-    if (!ACCEPTED_TYPES.has(candidate.type)) {
-      setFile(null); setClientError('Use una imagen PNG, JPG, JPEG o WEBP.'); return
+    if (!isSupportedImage(candidate)) {
+      setFile(null); setClientError('Use una imagen válida (PNG, JPG, JPEG o WEBP).'); return
     }
     if (candidate.size > MAX_BYTES) {
       setFile(null); setClientError('La imagen no puede superar 10 MB.'); return
@@ -175,7 +183,7 @@ export function ExistingDiagramImageImportDialog({
         {!proposal && <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <input ref={input} className="block flex-1 text-sm text-slate-600" type="file"
-              accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+              accept="image/*,.png,.jpg,.jpeg,.webp,.jfif"
               onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} />
             <button className="primary-button" type="button"
               disabled={!file || analyze.isPending || configuration.data?.configured === false}

@@ -1467,6 +1467,9 @@ public class SpringBackendRenderer {
             Path to = root.resolve(f);
             Files.createDirectories(to.getParent());
             Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
+            try {
+                to.toFile().setExecutable(true, false);
+            } catch (Exception ignored) {}
         }
     }
 

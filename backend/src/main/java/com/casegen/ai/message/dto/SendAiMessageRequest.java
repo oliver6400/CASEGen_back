@@ -11,9 +11,14 @@ public record SendAiMessageRequest(
         @NotBlank String content,
         UUID modelId,
         UUID diagramId,
-        AiSkill skill
+        AiSkill skill,
+        String imageUrl
 ) {
     public SendAiMessageRequest(UUID clientMessageId, String content, UUID modelId, UUID diagramId) {
-        this(clientMessageId, content, modelId, diagramId, AiSkill.GENERAL);
+        this(clientMessageId, content, modelId, diagramId, AiSkill.GENERAL, null);
+    }
+
+    public SendAiMessageRequest(UUID clientMessageId, String content, UUID modelId, UUID diagramId, AiSkill skill) {
+        this(clientMessageId, content, modelId, diagramId, skill, null);
     }
 }

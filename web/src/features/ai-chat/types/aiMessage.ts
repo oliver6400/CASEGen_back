@@ -15,6 +15,7 @@ export interface AiMessageResponse {
   diagramName: string | null
   provider: string | null
   replyToMessageId: string | null
+  imageUrl?: string | null
   createdAt: string
 }
 
@@ -24,6 +25,7 @@ export interface SendAiMessageRequest {
   modelId?: string
   diagramId?: string
   skill: AiSkill
+  imageUrl?: string | null
 }
 
 export interface SendAiMessageResponse {
