@@ -521,6 +521,7 @@ class AiChatMessage {
     required this.authorName,
     required this.content,
     required this.createdAt,
+    this.imageUrl,
   });
 
   final String id;
@@ -528,6 +529,7 @@ class AiChatMessage {
   final String? authorName;
   final String content;
   final DateTime? createdAt;
+  final String? imageUrl;
 
   factory AiChatMessage.fromJson(Map<String, dynamic> json) => AiChatMessage(
     id: json['id'] as String,
@@ -535,5 +537,6 @@ class AiChatMessage {
     authorName: json['authorName'] as String?,
     content: json['content'] as String? ?? '',
     createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+    imageUrl: json['imageUrl'] as String?,
   );
 }

@@ -91,4 +91,21 @@ void main() {
     expect(geometry.width, 406);
     expect(geometry.height, 276);
   });
+
+  test('parses AiChatMessage with imageUrl for collaborative chat visualization', () {
+    final message = AiChatMessage.fromJson({
+      'id': 'msg-1',
+      'role': 'USER',
+      'authorName': 'Carlos',
+      'content': 'Diagrama adjunto',
+      'createdAt': '2026-11-10T19:50:00Z',
+      'imageUrl': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA',
+    });
+
+    expect(message.id, 'msg-1');
+    expect(message.role, 'USER');
+    expect(message.authorName, 'Carlos');
+    expect(message.content, 'Diagrama adjunto');
+    expect(message.imageUrl, 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA');
+  });
 }

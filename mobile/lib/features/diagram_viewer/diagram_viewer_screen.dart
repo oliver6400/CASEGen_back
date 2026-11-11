@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -905,8 +907,15 @@ class _AiConversationSheet extends StatelessWidget {
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                SelectableText(message.content),
+                                if (message.imageUrl != null &&
+                                    message.imageUrl!.trim().isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  _buildChatImage(context, message.imageUrl!),
+                                ],
+                                if (message.content.trim().isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  SelectableText(message.content),
+                                ],
                               ],
                             ),
                           ),
@@ -927,6 +936,179 @@ class _AiConversationSheet extends StatelessWidget {
       ),
     ),
   );
+
+  Widget _buildChatImage(BuildContext context, String rawUrl) {
+    final trimmed = rawUrl.trim();
+    Widget imageWidget;
+    Uint8List? memoryBytes;
+
+    if (trimmed.startsWith('data:image/')) {
+      try {
+        final commaIdx = trimmed.indexOf(',');
+        final base64Payload =
+            commaIdx != -1 ? trimmed.substring(commaIdx + 1) : trimmed;
+        memoryBytes = base64Decode(base64Payload);
+        imageWidget = Image.memory(
+          memoryBytes,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _imageErrorWidget(),
+        );
+      } catch (_) {
+        imageWidget = _imageErrorWidget();
+      }
+    } else if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      imageWidget = Image.network(
+        trimmed,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            height: 160,
+            alignment: Alignment.center,
+            child: const CircularProgressIndicator(strokeWidth: 2),
+          );
+        },
+        errorBuilder: (_, __, ___) => _imageErrorWidget(),
+      );
+    } else {
+      try {
+        memoryBytes = base64Decode(trimmed);
+        imageWidget = Image.memory(
+          memoryBytes,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _imageErrorWidget(),
+        );
+      } catch (_) {
+        imageWidget = _imageErrorWidget();
+      }
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _openImageDialog(context, rawUrl, memoryBytes),
+          child: Stack(
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxHeight: 220,
+                  minWidth: double.infinity,
+                ),
+                child: imageWidget,
+              ),
+              Positioned(
+                right: 6,
+                bottom: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.65),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.zoom_in, color: Colors.white, size: 14),
+                      SizedBox(width: 4),
+                      Text(
+                        'Ver imagen',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _imageErrorWidget() => Container(
+        height: 100,
+        color: Colors.black12,
+        alignment: Alignment.center,
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.broken_image, color: Colors.black54, size: 18),
+            SizedBox(width: 6),
+            Text(
+              'No se pudo cargar la imagen',
+              style: TextStyle(fontSize: 11, color: Colors.black54),
+            ),
+          ],
+        ),
+      );
+
+  void _openImageDialog(
+    BuildContext context,
+    String rawUrl,
+    Uint8List? memoryBytes,
+  ) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (dialogContext) {
+        Widget previewWidget;
+        if (memoryBytes != null) {
+          previewWidget = Image.memory(memoryBytes, fit: BoxFit.contain);
+        } else if (rawUrl.startsWith('http://') ||
+            rawUrl.startsWith('https://')) {
+          previewWidget = Image.network(rawUrl, fit: BoxFit.contain);
+        } else {
+          try {
+            final trimmed = rawUrl.trim();
+            final comma = trimmed.indexOf(',');
+            final payload =
+                comma != -1 ? trimmed.substring(comma + 1) : trimmed;
+            previewWidget = Image.memory(
+              base64Decode(payload),
+              fit: BoxFit.contain,
+            );
+          } catch (_) {
+            previewWidget = const Center(
+              child: Text(
+                'Error al visualizar la imagen',
+                style: TextStyle(color: Colors.white),
+              ),
+            );
+          }
+        }
+
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.black54,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: const Text(
+              'Imagen adjunta',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              minScale: 0.8,
+              maxScale: 4.0,
+              child: previewWidget,
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 String _formatOperationDetails(UmlOperation operation) {
